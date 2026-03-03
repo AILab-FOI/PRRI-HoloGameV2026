@@ -1,6 +1,6 @@
-# PRRI-HoloGameV2025
+# PRRI-HoloGameV2026
 
-A retro game for the HoloGameV platform developed by students and the [Artificial Intelligence Laboratory](https://ai.foi.hr/) at the [University of Zagreb Faculty of Organization and Informatics](https://www.foi.unizg.hr/). The game is developed using [TIC-80](https://tic80.com/). More details available at [itch.io](https://ailab-foi.itch.io/prri-hologamev2025). A previous version of this game has been developed [here](https://github.com/AILab-FOI/PRRI-HoloGameV2024/tree/main).
+A retro game for the HoloGameV platform developed by students and the [Artificial Intelligence Laboratory](https://ai.foi.hr/) at the [University of Zagreb Faculty of Organization and Informatics](https://www.foi.unizg.hr/). The game is developed using [TIC-80](https://tic80.com/). More details available at [itch.io](https://ailab-foi.itch.io/prri-hologamev2026). 
 
 ## Instructions
 
@@ -31,6 +31,10 @@ python server.py
 ```
 
 Use your mobile device to open the controller interface in the browser at the IP address of your computer on port 5000.
+
+# Credits
+
+A previous version of this game has been developed [here](https://github.com/AILab-FOI/PRRI-HoloGameV2024/tree/main) and [here](https://github.com/AILab-FOI/PRRI-HoloGameV2025).
 
 ## Acknowledgements
 

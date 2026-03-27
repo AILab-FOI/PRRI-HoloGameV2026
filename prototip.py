@@ -1,7 +1,7 @@
 import sys, pygame, random
 
 pygame.init()
-screen = pygame.display.set_mode((800, 600))
+screen = pygame.display.set_mode((600, 600))
 clock = pygame.time.Clock()
 
 izlaz = False
@@ -16,15 +16,37 @@ character_left = pygame.transform.scale(character_left, (42, 84))
 
 character = character_right
 
-background = pygame.image.load("background - glitch.png").convert()
-background = pygame.transform.scale(background, (1200, 900))
-backgroundrect = background.get_rect()
-
 block = pygame.image.load("block.png").convert()
 block = pygame.transform.scale(block, (32, 32))
 
-backgroundrect.center = (600, 450)
+katana_right = pygame.image.load("katana_neon_right.png").convert_alpha()
+katana_right = pygame.transform.scale(katana_right, (48, 48))
+katanarect = katana_right.get_rect()
+
+#pozadina (rucno napravljen GIF)
+frame_normal = pygame.image.load("background - glitch.png").convert()
+frame_normal = pygame.transform.scale(frame_normal, (1200, 900))
+
+glitch_frame1 = pygame.image.load("background - glitch_frame2.png").convert()
+glitch_frame1 = pygame.transform.scale(glitch_frame1, (1200, 900))
+
+glitch_frame2 = pygame.image.load("background - glitch_frame3.png").convert()
+glitch_frame2 = pygame.transform.scale(glitch_frame2, (1200, 900))
+
+glitch_frames=[glitch_frame1, glitch_frame2]
+
+glitching = False
+glitch_frame = 0
+glitch_timer = 0
+
+time_since_last_glitch = 0
+next_glitch_time = random.randint(2000, 6000)
+
+backgroundrect=frame_normal.get_rect()
+
+backgroundrect.center = (450, 300)
 characterrect.midbottom = (50, 400)
+katanarect.midbottom = (600, 600)
 
 #blokovi
 blocks=[]
@@ -49,8 +71,23 @@ gravity = 0.5
 jump_strength = -10
 on_ground = False
 
+#kamera
+camera_x = 0
+camera_y = 0
+
+#veličina svijeta
+world_width = frame_normal.get_width()
+world_height = frame_normal.get_height()
+
+#okrugli ekran (maska)
+game_surface = pygame.Surface((600, 600), pygame.SRCALPHA)
+mask = pygame.Surface((600, 600), pygame.SRCALPHA)
+pygame.draw.circle(mask, (255,255,255), (300,300), 300)
+
 #igra
 while not izlaz:
+    dt = clock.tick(60)
+    
     #hotkeys
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -59,80 +96,115 @@ while not izlaz:
             if event.key == pygame.K_f:
                 pygame.display.toggle_fullscreen()
 
-    #kretnje
+    #kretnje lijevo, desno
     keys = pygame.key.get_pressed()
 
+    dx = 0
+
+    if keys[pygame.K_RIGHT]:
+        dx = speed
+        character = character_right
+
+    if keys[pygame.K_LEFT]:
+        dx = -speed
+        character = character_left
+
+    characterrect.x += dx
+
+    for b in blocks:
+        if characterrect.colliderect(b):
+            if dx > 0:
+                characterrect.right = b.left
+            if dx < 0:
+                characterrect.left = b.right
+
+    #character u granicama svijeta
+    if characterrect.left < 0:
+        characterrect.left = 0
+    if characterrect.right > world_width:
+        characterrect.right = world_width
+
+    #skakanje
     if keys[pygame.K_SPACE] and on_ground:
         y_speed = jump_strength
 
-    #KAD
-    #if keys[pygame.K_DOWN]:
-     #   screen.blit(block, characterrect)
-    #else:
-     #   screen.blit(character, characterrect)
-
-    if keys[pygame.K_RIGHT] and backgroundrect.right > 800:
-        can_move=True
-        for b in blocks:
-            test_block = b.copy()
-            test_block.x -= speed
-            character=character_right
-
-            if characterrect.colliderect(test_block):
-                can_move=False
-                break
-            
-        if can_move:
-            backgroundrect.x -= speed / 5
-            for b in blocks:
-                b.x -= speed
-
-    if keys[pygame.K_LEFT] and backgroundrect.left < 0:
-        can_move=True
-        for b in blocks:
-            test_block = b.copy()
-            test_block.x += speed
-            character=character_left
-
-            if characterrect.colliderect(test_block):
-                can_move=False
-                break
-
-        if can_move:
-            backgroundrect.x += speed / 5
-            for b in blocks:
-                b.x += speed
-                
-    #fizika (logika)
     y_speed += gravity
     characterrect.y += y_speed
 
+    on_ground = False
+
+    for b in blocks:
+        if characterrect.colliderect(b):
+            if y_speed > 0:
+                characterrect.bottom = b.top
+                y_speed = 0
+                on_ground = True
+
+            elif y_speed < 0:
+                characterrect.top = b.bottom
+                y_speed = 0
+
+    #pod (NE background)
     if characterrect.bottom >= 600:
         characterrect.bottom = 600
         y_speed = 0
         on_ground = True
+
+    #kretnja kamere
+    target_x = characterrect.centerx - 300
+    target_y = characterrect.centery - 350
+
+    camera_x += (target_x - camera_x) * 0.1
+    camera_y += (target_y - camera_y) * 0.1
+
+    #ograničenje kamere
+    camera_x = max(0, min(camera_x, world_width - 600))
+    camera_y = max(0, min(camera_y, world_height - 600))
+
+    #logika GIF-a
+    time_since_last_glitch+=dt
+    if not glitching and time_since_last_glitch >= next_glitch_time:
+        glitching = True
+        glitch_timer=0
+        glitch_frame=0
+
+    if glitching:
+        glitch_timer+=dt
+
+        if glitch_timer>50:
+            glitch_timer=0
+            glitch_frame+=1
+
+            if glitch_frame >= len(glitch_frames):
+                glitch_frame=0
+
+        if time_since_last_glitch >= next_glitch_time + 200:
+            glitching=False
+            time_since_last_glitch=0
+            next_glitch_time=random.randint(2000, 6000)
+    
+    #crtanje (na game surface)
+    game_surface.fill((0,0,0))
+
+    if glitching:
+        game_surface.blit(glitch_frames[glitch_frame], (-camera_x, -camera_y))
     else:
-        on_ground = False
+        game_surface.blit(frame_normal, (-camera_x, -camera_y))
 
     for b in blocks:
-        if characterrect.colliderect(b) and y_speed > 0:
-            characterrect.bottom = b.top
-            y_speed = 0
-            on_ground = True
+        game_surface.blit(block, (b.x - camera_x, b.y - camera_y))
 
-        if characterrect.colliderect(b) and y_speed < 0:
-            characterrect.top = b.bottom
-            y_speed = 0
+    game_surface.blit(character, (characterrect.x - camera_x, characterrect.y - camera_y))
 
-    #crtanje elemenata
-    screen.blit(background, backgroundrect)
-    screen.blit(character, characterrect)
+    game_surface.blit(katana_right, (katanarect.x - camera_x, katanarect.y - camera_y))
+    
+    #primjena kružne maske
+    game_surface.blit(mask, (0,0), special_flags=pygame.BLEND_RGBA_MULT)
 
-    for b in blocks:
-        screen.blit(block, b)
+    screen.fill((0,0,0))
+    screen.blit(game_surface, (0,0))
 
     pygame.display.flip()
-    clock.tick(60)
 
 pygame.quit()
 sys.exit()

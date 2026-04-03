@@ -31,6 +31,10 @@ class Player:
         self.hsp = 0
         self.vsp = 0
 
+        self.on_ground = False
+        self.coyote_timer = 0
+        self.coyote_time_max = 10
+
     def check_collision(self, dx, dy, colliders):
         self.x += dx
         self.y += dy
@@ -47,6 +51,15 @@ class Player:
 
     def update(self, colliders):
         # LEFT / RIGHT
+        self.on_ground = self.check_collision(0, 1, colliders)
+        if self.on_ground:
+            self.coyote_timer = self.coyote_time_max
+            print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12 )
+        else:
+            if self.coyote_timer > 0:
+                self.coyote_timer -= 1
+                print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12)
+
         if key(1):
             self.hsp = move_towards(self.hsp, -2, 0.3)
         elif key(4):
@@ -55,8 +68,9 @@ class Player:
             self.hsp = move_towards(self.hsp, 0, 0.3)
 
         # JUMP
-        if key(23) and self.check_collision(0, 1, colliders):
+        if keyp(23) and self.coyote_timer > 0:
             self.vsp = -4
+            self.coyote_timer = 0
 
         # GRAVITY
         if not self.check_collision(0, self.vsp + 1, colliders):

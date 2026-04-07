@@ -38,6 +38,9 @@ class Player:
         self.jump_buffer = 0
         self.jump_buffer_max = 30
 
+        self.max_jumps = 2
+        self.jumps_left = 2
+
     def check_collision(self, dx, dy, colliders):
         self.x += dx
         self.y += dy
@@ -59,9 +62,11 @@ class Player:
             self.coyote_timer = self.coyote_time_max
             print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12 )
             print("buffer: " + str(self.jump_buffer), 2, 10, 11)
+            self.jumps_left = self.max_jumps
         else:
             if self.coyote_timer > 0:
                 self.coyote_timer -= 1
+                
                 print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12)
                 print("buffer: " + str(self.jump_buffer), 2, 10, 11)
 
@@ -76,11 +81,19 @@ class Player:
             self.jump_buffer = 12
             print("JUMP PRESSED", 2, 18, 10)
         # JUMP
-        if self.jump_buffer > 0 and self.coyote_timer > 0:
-            self.vsp = -4
-            self.coyote_timer = 0
-            self.jump_buffer = 0
-            print("JUMP USED", 2, 26, 9)
+        if self.jump_buffer > 0:
+            if self.coyote_timer > 0 and self.jumps_left == self.max_jumps:
+                self.vsp = -4
+                self.coyote_timer = 0
+                self.jump_buffer = 0
+                self.jumps_left -= 1
+                print("ground jump USED", 2, 26, 9)
+
+            elif not self.on_ground and self.jumps_left > 0:
+                self.vsp = -4
+                self.jump_buffer = 0
+                self.jumps_left -= 1
+                print("DOUBLE JUMP", 2, 34, 8)
 
         # GRAVITY
         if not self.check_collision(0, self.vsp + 1, colliders):

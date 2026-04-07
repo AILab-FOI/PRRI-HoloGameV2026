@@ -35,6 +35,9 @@ class Player:
         self.coyote_timer = 0
         self.coyote_time_max = 10
 
+        self.jump_buffer = 0
+        self.jump_buffer_max = 30
+
     def check_collision(self, dx, dy, colliders):
         self.x += dx
         self.y += dy
@@ -55,10 +58,12 @@ class Player:
         if self.on_ground:
             self.coyote_timer = self.coyote_time_max
             print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12 )
+            print("buffer: " + str(self.jump_buffer), 2, 10, 11)
         else:
             if self.coyote_timer > 0:
                 self.coyote_timer -= 1
                 print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12)
+                print("buffer: " + str(self.jump_buffer), 2, 10, 11)
 
         if key(1):
             self.hsp = move_towards(self.hsp, -2, 0.3)
@@ -67,10 +72,15 @@ class Player:
         else:
             self.hsp = move_towards(self.hsp, 0, 0.3)
 
+        if keyp(23):
+            self.jump_buffer = 12
+            print("JUMP PRESSED", 2, 18, 10)
         # JUMP
-        if keyp(23) and self.coyote_timer > 0:
+        if self.jump_buffer > 0 and self.coyote_timer > 0:
             self.vsp = -4
             self.coyote_timer = 0
+            self.jump_buffer = 0
+            print("JUMP USED", 2, 26, 9)
 
         # GRAVITY
         if not self.check_collision(0, self.vsp + 1, colliders):
@@ -86,9 +96,13 @@ class Player:
         if self.check_collision(0, self.vsp, colliders):
             self.vsp = 0
 
+        if self.jump_buffer > 0:
+            self.jump_buffer -= 1
+
         # MOVE
         self.x += self.hsp
         self.y += self.vsp
+
 
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)

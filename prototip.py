@@ -22,6 +22,8 @@ def move_towards(a, b, v):
 
 # --- PLAYER ---
 class Player:
+    attackTimer=0
+    
     def __init__(self):
         self.x = 50
         self.y = 50
@@ -86,8 +88,30 @@ class Gun:
         self.width = 4
         self.height = 4
         
+        self.attackTimeDelay = 0
+        self.damage = 0
+        
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
+        
+    def attack(self):
+        if player.attackTimer < 0:
+            player.attackTimer = self.attackTimeDelay
+        
+class Katana(Gun): 
+    def __init__(self):
+        Gun.__init__(self)
+        
+        self.attackTimeDelay = 1
+        self.damage = 1
+
+class RangedWeapon(Gun):
+    def __init__(self):
+        Gun.__init__(self)
+        
+        self.attackTimeDelay = 2
+        self.damage = 2
+
 # --- INIT ---
 player = Player()
 
@@ -105,6 +129,8 @@ def TIC():
 
     player.update(colliders)
     player.draw()
+    
+    
 
     # debug draw
     for c in colliders:

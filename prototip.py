@@ -79,7 +79,15 @@ class Player:
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
 
-
+class Gun:
+    def __init__(self):
+        self.x = Player.self.x + 5
+        self.y = Player.self.y + 5
+        self.width = 4
+        self.height = 4
+        
+    def draw(self):
+        rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
 # --- INIT ---
 player = Player()
 
@@ -88,6 +96,7 @@ colliders = [
     Collidable(80, 90, 40, 10),
     Collidable(140, 70, 40, 10)
 ]
+
 
 
 # --- MAIN LOOP ---

@@ -22,9 +22,9 @@ def move_towards(a, b, v):
 
 # --- PLAYER ---
 class Player:
-    attackTimer=0
-    
     def __init__(self):
+        self.attackTimer = 0
+
         self.x = 50
         self.y = 50
         self.width = 14
@@ -32,6 +32,8 @@ class Player:
 
         self.hsp = 0
         self.vsp = 0
+
+        self.facing = 1   # 1 = right, -1 = left
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -51,8 +53,10 @@ class Player:
         # LEFT / RIGHT
         if key(1):
             self.hsp = move_towards(self.hsp, -2, 0.3)
+            self.facing = -1
         elif key(4):
             self.hsp = move_towards(self.hsp, 2, 0.3)
+            self.facing = 1
         else:
             self.hsp = move_towards(self.hsp, 0, 0.3)
 
@@ -78,56 +82,75 @@ class Player:
         self.x += self.hsp
         self.y += self.vsp
 
+        if self.attackTimer > 0:
+            self.attackTimer -= 1
+
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
 
+
 class Gun:
-    def __init__(self):
-        self.x = player.x + player.height + 5
-        self.y = player.y + player.width - 10
+    def __init__(self, owner):
+        self.owner = owner
+
+        self.x = 0
+        self.y = 0
         self.width = 4
         self.height = 4
 
-        self.hsp = 0
-        self.vsp = 0
-
-
-        
         self.attackTimeDelay = 0
         self.damage = 0
-        
-    def draw(self):
-        rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
 
+        # right offset
+        self.offset_right_x = 15
+        self.offset_right_y = 4
+
+        # left offset 
+        self.offset_left_x = -5
+        self.offset_left_y = 4
 
     def update(self):
-        self.hsp = player.hsp
-        self.vsp = player.vsp
-        self.x += self.hsp
-        self.y += self.vsp
-        
+        if self.owner.facing == 1:
+            self.x = self.owner.x + self.offset_right_x
+            self.y = self.owner.y + self.offset_right_y
+        else:
+            self.x = self.owner.x + self.offset_left_x
+            self.y = self.owner.y + self.offset_left_y
+
+    def draw(self):
+        rect(int(self.x), int(self.y), int(self.width), int(self.height), 14)
+
     def attack(self):
-        if player.attackTimer < 0:
-            player.attackTimer = self.attackTimeDelay
-        
-class Katana(Gun): 
-    def __init__(self):
-        Gun.__init__(self)
-        
+        if self.owner.attackTimer <= 0:
+            self.owner.attackTimer = self.attackTimeDelay
+
+
+class Katana(Gun):
+    def __init__(self, owner):
+        Gun.__init__(self, owner)
         self.attackTimeDelay = 1
         self.damage = 1
+        self.width = 8
+        self.height = 3
+
+        self.offset_right_x = 14
+        self.offset_right_y = 5
+
+        self.offset_left_x = -8
+        self.offset_left_y = 5
+
 
 class RangedWeapon(Gun):
-    def __init__(self):
-        Gun.__init__(self)
-        
+    def __init__(self, owner):
+        Gun.__init__(self, owner)
         self.attackTimeDelay = 2
         self.damage = 2
 
+
 # --- INIT ---
 player = Player()
-
-gun = Gun()
+gun = Gun(player)
+# gun = Katana(player)
 
 colliders = [
     Collidable(0, 120, 240, 16),
@@ -136,15 +159,16 @@ colliders = [
 ]
 
 
-
 # --- MAIN LOOP ---
 def TIC():
     cls(0)
 
     player.update(colliders)
-    player.draw()
     gun.update()
+
+    player.draw()
     gun.draw()
+
     # debug draw
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
@@ -177,3 +201,4 @@ def TIC():
 # <PALETTE>
 # 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
 # </PALETTE>
+

@@ -83,16 +83,28 @@ class Player:
 
 class Gun:
     def __init__(self):
-        self.x = Player.self.x + 5
-        self.y = Player.self.y + 5
+        self.x = player.x + player.height + 5
+        self.y = player.y + player.width - 10
         self.width = 4
         self.height = 4
+
+        self.hsp = 0
+        self.vsp = 0
+
+
         
         self.attackTimeDelay = 0
         self.damage = 0
         
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
+
+
+    def update(self):
+        self.hsp = player.hsp
+        self.vsp = player.vsp
+        self.x += self.hsp
+        self.y += self.vsp
         
     def attack(self):
         if player.attackTimer < 0:
@@ -115,6 +127,8 @@ class RangedWeapon(Gun):
 # --- INIT ---
 player = Player()
 
+gun = Gun()
+
 colliders = [
     Collidable(0, 120, 240, 16),
     Collidable(80, 90, 40, 10),
@@ -129,9 +143,8 @@ def TIC():
 
     player.update(colliders)
     player.draw()
-    
-    
-
+    gun.update()
+    gun.draw()
     # debug draw
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)

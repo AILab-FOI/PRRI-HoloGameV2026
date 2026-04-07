@@ -9,7 +9,7 @@ class Collidable:
         self.height = h
 
     def check(self, other):
-        return self.x < other.x + other.width and self.x + self.width > other.x and self.y < other.y + other.height and self.y + self.height > other.y
+        return (self.x < other.x + other.width and self.x + self.width > other.x and self.y < other.y + other.height and self.y + self.height > other.y)
 
 
 # --- HELPER ---
@@ -56,18 +56,19 @@ class Player:
         self.x += dx
         self.y += dy
 
+        hit = False
         for c in colliders:
             if c.check(self):
-                self.x -= dx
-                self.y -= dy
-                return True
+                hit = True
+                break
 
         self.x -= dx
         self.y -= dy
-        return False
+
+        return hit
 
     def update(self, colliders):
-        # GROUND CHECK
+        # --- GROUND CHECK ---
         self.on_ground = self.check_collision(0, 1, colliders)
 
         if self.on_ground:
@@ -83,7 +84,7 @@ class Player:
         print("buffer: " + str(self.jump_buffer), 2, 18, 10)
         print("jumps: " + str(self.jumps_left), 2, 26, 9)
         print("dash cd: " + str(self.dash_cooldown), 2, 34, 8)
-
+        
         # FACING
         if key(1):
             self.facing = -1
@@ -113,7 +114,7 @@ class Player:
         else:
             self.is_dashing = False
 
-        # START DASH
+         # START DASH
         if keyp(48) and not self.is_dashing and self.dash_cooldown == 0:
             self.is_dashing = True
             self.dash_timer = self.dash_time_max
@@ -121,7 +122,22 @@ class Player:
             self.vsp = 0
             print("DASH", 2, 50, 12)
 
-        # JUMP / GRAVITY / DASH
+        # HORIZONTAL
+        if not self.is_dashing:
+            if key(1):
+                self.hsp = move_towards(self.hsp, -2, 0.3)
+            elif key(4):
+                self.hsp = move_towards(self.hsp, 2, 0.3)
+            else:
+                self.hsp = move_towards(self.hsp, 0, 0.3)
+        else:
+            self.hsp = self.facing * self.dash_speed
+
+        # JUMP INPUT
+        if keyp(23):
+            self.jump_buffer = 12
+
+        # JUMP / GRAVITY
         if not self.is_dashing:
             # JUMP
             if self.jump_buffer > 0:
@@ -145,26 +161,54 @@ class Player:
                 self.vsp += 0.25
             else:
                 self.vsp = 0
-
         else:
-            self.hsp = self.facing * self.dash_speed
             self.vsp = 0
 
-        # COLLISION X
-        if self.check_collision(self.hsp, 0, colliders):
-            self.hsp = 0
-
-        # COLLISION Y
-        if self.check_collision(0, self.vsp, colliders):
-            self.vsp = 0
-
-        # BUFFER COUNTDOWN
         if self.jump_buffer > 0:
             self.jump_buffer -= 1
 
-        # MOVE
-        self.x += self.hsp
-        self.y += self.vsp
+        # STEP MOVEMENT (RADI I ZA DASH)
+        # --- MOVE X ---
+        move_x = self.hsp
+        steps = int(abs(move_x))
+
+        for i in range(steps):
+            step = 1 if move_x > 0 else -1
+
+            if not self.check_collision(step, 0, colliders):
+                self.x += step
+            else:
+                self.hsp = 0
+                self.is_dashing = False
+                break
+
+        remainder = move_x - int(move_x)
+        if remainder != 0:
+            if not self.check_collision(remainder, 0, colliders):
+                self.x += remainder
+            else:
+                self.hsp = 0
+                self.is_dashing = False
+
+        # --- MOVE Y ---
+        move_y = self.vsp
+        steps = int(abs(move_y))
+
+        for i in range(steps):
+            step = 1 if move_y > 0 else -1
+
+            if not self.check_collision(0, step, colliders):
+                self.y += step
+            else:
+                self.vsp = 0
+                break
+
+        remainder = move_y - int(move_y)
+        if remainder != 0:
+            if not self.check_collision(0, remainder, colliders):
+                self.y += remainder
+            else:
+                self.vsp = 0
 
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
@@ -187,10 +231,8 @@ def TIC():
     player.update(colliders)
     player.draw()
 
-    # DEBUG DRAW COLLIDERS
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
-
 
 # <TILES>
 # 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
@@ -220,3 +262,4 @@ def TIC():
 # <PALETTE>
 # 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
 # </PALETTE>
+

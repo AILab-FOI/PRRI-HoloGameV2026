@@ -33,8 +33,6 @@ class Player:
         self.hsp = 0
         self.vsp = 0
         
-        self.facing = 1   # 1 = right, -1 = left
-
         self.on_ground = False
         self.coyote_timer = 0
         self.coyote_time_max = 10
@@ -42,75 +40,141 @@ class Player:
         self.jump_buffer = 0
         self.jump_buffer_max = 30
 
+        self.max_jumps = 2
+        self.jumps_left = 2
+
+        # DASH
+        self.is_dashing = False
+        self.dash_timer = 0
+        self.dash_time_max = 6
+
+        self.dash_cooldown = 0
+        self.dash_cooldown_max = 30
+
+        self.dash_speed = 4
+        self.facing = 1  # 1 = desno, -1 = lijevo
+
     def check_collision(self, dx, dy, colliders):
         self.x += dx
         self.y += dy
 
+        hit = False
         for c in colliders:
             if c.check(self):
-                self.x -= dx
-                self.y -= dy
-                return True
+                hit = True
+                break
 
         self.x -= dx
         self.y -= dy
-        return False
+
+        return hit
 
     def update(self, colliders):
         # LEFT / RIGHT
         self.on_ground = self.check_collision(0, 1, colliders)
+
         if self.on_ground:
             self.coyote_timer = self.coyote_time_max
-            print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12 )
-            print("buffer: " + str(self.jump_buffer), 2, 10, 11)
+            self.jumps_left = self.max_jumps
         else:
             if self.coyote_timer > 0:
                 self.coyote_timer -= 1
-                print("coyote timer: "+ str(self.coyote_timer), 2, 2, 12)
-                print("buffer: " + str(self.jump_buffer), 2, 10, 11)
+
+        # DEBUG
+        print("ground: " + str(self.on_ground), 2, 2, 12)
+        print("coyote: " + str(self.coyote_timer), 2, 10, 11)
+        print("buffer: " + str(self.jump_buffer), 2, 18, 10)
+        print("jumps: " + str(self.jumps_left), 2, 26, 9)
+        print("dash cd: " + str(self.dash_cooldown), 2, 34, 8)
 
         if key(1):
-            self.hsp = move_towards(self.hsp, -2, 0.3)
             self.facing = -1
         elif key(4):
-            self.hsp = move_towards(self.hsp, 2, 0.3)
             self.facing = 1
+        if not self.is_dashing:
+            if key(1):
+                self.hsp = move_towards(self.hsp, -2, 0.3)
+            elif key(4):
+                self.hsp = move_towards(self.hsp, 2, 0.3)
+            else:
+                self.hsp = move_towards(self.hsp, 0, 0.3)
         else:
-            self.hsp = move_towards(self.hsp, 0, 0.3)
+            self.hsp = self.facing * self.dash_speed
 
+        # JUMP INPUT
         if keyp(23):
             self.jump_buffer = 12
-            print("JUMP PRESSED", 2, 18, 10)
-        # JUMP
-        if self.jump_buffer > 0 and self.coyote_timer > 0:
-            self.vsp = -4
-            self.coyote_timer = 0
-            self.jump_buffer = 0
-            print("JUMP USED", 2, 26, 9)
+
+        # JUMP / GRAVITY
+        if not self.is_dashing:
+            # JUMP
+            if self.jump_buffer > 0:
+                # prvi jump sa poda ili coyote time
+                if self.coyote_timer > 0 and self.jumps_left == self.max_jumps:
+                    self.vsp = -4
+                    self.coyote_timer = 0
+                    self.jump_buffer = 0
+                    self.jumps_left -= 1
+                    print("GROUND JUMP", 2, 58, 9)
+
+                # drugi jump u zraku
+                elif not self.on_ground and self.jumps_left > 0:
+                    self.vsp = -4
+                    self.jump_buffer = 0
+                    self.jumps_left -= 1
+                    print("DOUBLE JUMP", 2, 66, 8)
 
         # GRAVITY
-        if not self.check_collision(0, self.vsp + 1, colliders):
-            self.vsp += 0.25
+            if not self.check_collision(0, self.vsp + 1, colliders):
+                self.vsp += 0.25
+            else:
+                self.vsp = 0
         else:
-            self.vsp = 0
-
-        # COLLISION X
-        if self.check_collision(self.hsp, 0, colliders):
-            self.hsp = 0
-
-        # COLLISION Y
-        if self.check_collision(0, self.vsp, colliders):
-            self.vsp = 0
-
+            slef.vsp = 0
+        
         if self.jump_buffer > 0:
             self.jump_buffer -= 1
 
-        # MOVE
-        self.x += self.hsp
-        self.y += self.vsp
+        move_x = self.hsp
+        steps = int(abs(move_x))
 
-        if self.attackTimer > 0:
-            self.attackTimer -= 1
+        for i in range(steps):
+            step = 1 if move_x > 0 else -1
+
+            if not self.check_collision(step, 0, colliders):
+                self.x += step
+            else:
+                self.hsp = 0
+                self.is_dashing = False
+                break
+
+        remainder = move_x - int(move_x)
+        if remainder != 0:
+            if not self.check_collision(remainder, 0, colliders):
+                self.x += remainder
+            else:
+                self.hsp = 0
+                self.is_dashing = False
+
+        # --- MOVE Y ---
+        move_y = self.vsp
+        steps = int(abs(move_y))
+
+        for i in range(steps):
+            step = 1 if move_y > 0 else -1
+
+            if not self.check_collision(0, step, colliders):
+                self.y += step
+            else:
+                self.vsp = 0
+                break
+
+        remainder = move_y - int(move_y)
+        if remainder != 0:
+            if not self.check_collision(0, remainder, colliders):
+                self.y += remainder
+            else:
+                self.vsp = 0
 
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)

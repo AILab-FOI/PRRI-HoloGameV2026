@@ -37,8 +37,13 @@ class Player:
 
         self.hsp = 0
         self.vsp = 0
+        
+        self.health = 100
+        self.dead = False
 
         self.facing = 1   # 1 = right, -1 = left
+        
+        self.hitbox = Collidable(self.x, self.y, self.width, self.height)
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -58,11 +63,17 @@ class Player:
         for d in damageTriggers:
             if d.check(self.hitbox):
                 self.health -= d.damage
+                #print("Took damage, remaining health: " + str(self.health), 2, int(self.y), 12)
+                if self.health < 1:
+                    self.dead = True
                 return True
         
         return False
 
-    def update(self, colliders):
+    def update(self, colliders, damageTriggers):
+        if (self.dead):
+            return
+        
         # LEFT / RIGHT
         if key(1):
             self.hsp = move_towards(self.hsp, -2, 0.3)
@@ -97,9 +108,19 @@ class Player:
 
         if self.attackTimer > 0:
             self.attackTimer -= 1
+        
+        self.check_damage_trigger(damageTriggers)
+        
+        self.hitbox.x = self.x
+        self.hitbox.y = self.y
+        
+        print("self.x: " + str(self.x), 2, 2, 12)
+        print("self.y: " + str(self.y), 2, 8, 12)
+        print("self.hitbox.x: " + str(self.hitbox.x), 2, 14, 12)
+        print("self.hitbox.y: " + str(self.hitbox.y), 2, 20, 12)
 
     def draw(self):
-        rect(int(self.x), int(self.y), int(self.width), int(self.height), 4)
+        if(not self.dead): rect(int(self.x), int(self.y), int(self.width), int(self.height), 5)
 
 # --- WEAPONS ---
 class Gun:
@@ -228,7 +249,8 @@ class Enemy:
         self.check_damage_trigger(damageTriggers)
 
     def draw(self):
-        if(not self.dead): rect(int(self.x), int(self.y), int(self.width), int(self.height), 2)
+        if(not self.dead): 
+            rect(int(self.x), int(self.y), int(self.width), int(self.height), 2)
     
     def TakeDamage(self, damage, removeInt):
         self.health = self.health - damage
@@ -244,10 +266,12 @@ enemy = Enemy(150, 90)
 colliders = [
     Collidable(0, 120, 240, 16),
     Collidable(80, 90, 40, 10),
-    Collidable(140, 70, 40, 10)
+    Collidable(140, 70, 40, 10),
 ]
 
-playerDamageTriggers = []
+playerDamageTriggers = [
+    DamageTrigger(140, 45, 30, 30, 2)
+]
 enemyDamageTriggers = [
     DamageTrigger(150, 90, 30, 30, 2)
 ]
@@ -259,7 +283,7 @@ enemies.append(enemy)
 def TIC():
     cls(0)
 
-    player.update(colliders)
+    player.update(colliders, playerDamageTriggers)
     gun.update()
     enemy.update(colliders, enemyDamageTriggers)
 
@@ -270,7 +294,9 @@ def TIC():
     # debug draw
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
-        
+    
+    for p in playerDamageTriggers:
+        rect(int(p.x), int(p.y), int(p.width), int(p.height), 7)
     #for c in enemies:
         #rect(int(c.x), int(c.y), int(c.width), int(c.height), 2)
 

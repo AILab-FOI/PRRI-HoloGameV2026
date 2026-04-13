@@ -11,6 +11,11 @@ class Collidable:
     def check(self, other):
         return self.x < other.x + other.width and self.x + self.width > other.x and self.y < other.y + other.height and self.y + self.height > other.y
 
+class DamageTrigger(Collidable):
+    def __init__(self, x, y, w, h, damage):
+        Collidable.__init__(self, x, y, w, h)
+        
+        self.damage = damage
 
 # --- HELPER ---
 def move_towards(a, b, v):
@@ -47,6 +52,14 @@ class Player:
 
         self.x -= dx
         self.y -= dy
+        return False
+    
+    def check_damage_trigger(self, damageTriggers):
+        for d in damageTriggers:
+            if d.check(self.hitbox):
+                self.health -= d.damage
+                return True
+        
         return False
 
     def update(self, colliders):
@@ -86,7 +99,7 @@ class Player:
             self.attackTimer -= 1
 
     def draw(self):
-        rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
+        rect(int(self.x), int(self.y), int(self.width), int(self.height), 4)
 
 # --- WEAPONS ---
 class Gun:
@@ -160,6 +173,10 @@ class Enemy:
         self.vsp = 0
 
         self.facing = 1   # 1 = right, -1 = left
+        self.health = 100
+        self.dead = False
+        
+        self.hitbox = Collidable(self.x, self.y, self.width, self.height)
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -174,8 +191,19 @@ class Enemy:
         self.x -= dx
         self.y -= dy
         return False
+    
+    def check_damage_trigger(self, damageTriggers):
+        for d in damageTriggers:
+            if d.check(self.hitbox):
+                self.health -= d.damage
+                #print("Took damage, remaining health: " + str(self.health), 2, int(self.y), 12)
+                if self.health < 1:
+                    self.dead = True
+                return True
+        
+        return False
 
-    def update(self, colliders):
+    def update(self, colliders, damageTriggers):
         # GRAVITY
         if not self.check_collision(0, self.vsp + 1, colliders):
             self.vsp += 0.25
@@ -196,9 +224,16 @@ class Enemy:
 
         if self.attackTimer > 0:
             self.attackTimer -= 1
+            
+        self.check_damage_trigger(damageTriggers)
 
     def draw(self):
-        rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
+        if(not self.dead): rect(int(self.x), int(self.y), int(self.width), int(self.height), 2)
+    
+    def TakeDamage(self, damage, removeInt):
+        self.health = self.health - damage
+        if self.health < 1:
+            self.dead = True
 
 # --- INIT ---
 player = Player()
@@ -212,6 +247,11 @@ colliders = [
     Collidable(140, 70, 40, 10)
 ]
 
+playerDamageTriggers = []
+enemyDamageTriggers = [
+    DamageTrigger(150, 90, 30, 30, 2)
+]
+
 enemies = []
 enemies.append(enemy)
 
@@ -221,7 +261,7 @@ def TIC():
 
     player.update(colliders)
     gun.update()
-    enemy.update(colliders)
+    enemy.update(colliders, enemyDamageTriggers)
 
     player.draw()
     gun.draw()
@@ -231,10 +271,8 @@ def TIC():
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
         
-    for c in enemies:
-        rect(int(c.x), int(c.y), int(c.width), int(c.height), 2)
-
-    rect(int(player.x), int(player.y), int(player.width), int(player.height), 4)
+    #for c in enemies:
+        #rect(int(c.x), int(c.y), int(c.width), int(c.height), 2)
 
 # <TILES>
 # 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc

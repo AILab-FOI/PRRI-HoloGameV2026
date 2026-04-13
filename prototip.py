@@ -88,7 +88,7 @@ class Player:
     def draw(self):
         rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
 
-
+# --- WEAPONS ---
 class Gun:
     def __init__(self, owner):
         self.owner = owner
@@ -146,10 +146,64 @@ class RangedWeapon(Gun):
         self.attackTimeDelay = 2
         self.damage = 2
 
+# --- ENEMIES ---
+class Enemy:
+    def __init__(self, x, y):
+        self.attackTimer = 0
+
+        self.x = x
+        self.y = y
+        self.width = 14
+        self.height = 14
+
+        self.hsp = 0
+        self.vsp = 0
+
+        self.facing = 1   # 1 = right, -1 = left
+
+    def check_collision(self, dx, dy, colliders):
+        self.x += dx
+        self.y += dy
+
+        for c in colliders:
+            if c.check(self):
+                self.x -= dx
+                self.y -= dy
+                return True
+
+        self.x -= dx
+        self.y -= dy
+        return False
+
+    def update(self, colliders):
+        # GRAVITY
+        if not self.check_collision(0, self.vsp + 1, colliders):
+            self.vsp += 0.25
+        else:
+            self.vsp = 0
+
+        # COLLISION X
+        if self.check_collision(self.hsp, 0, colliders):
+            self.hsp = 0
+
+        # COLLISION Y
+        if self.check_collision(0, self.vsp, colliders):
+            self.vsp = 0
+
+        # MOVE
+        self.x += self.hsp
+        self.y += self.vsp
+
+        if self.attackTimer > 0:
+            self.attackTimer -= 1
+
+    def draw(self):
+        rect(int(self.x), int(self.y), int(self.width), int(self.height), 12)
 
 # --- INIT ---
 player = Player()
 gun = Gun(player)
+enemy = Enemy(150, 90)
 # gun = Katana(player)
 
 colliders = [
@@ -158,6 +212,8 @@ colliders = [
     Collidable(140, 70, 40, 10)
 ]
 
+enemies = []
+enemies.append(enemy)
 
 # --- MAIN LOOP ---
 def TIC():
@@ -165,13 +221,20 @@ def TIC():
 
     player.update(colliders)
     gun.update()
+    enemy.update(colliders)
 
     player.draw()
     gun.draw()
+    enemy.draw()
 
     # debug draw
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
+        
+    for c in enemies:
+        rect(int(c.x), int(c.y), int(c.width), int(c.height), 2)
+
+    rect(int(player.x), int(player.y), int(player.width), int(player.height), 4)
 
 # <TILES>
 # 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc

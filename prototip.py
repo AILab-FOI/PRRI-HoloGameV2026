@@ -152,7 +152,8 @@ class Gun:
             self.y = self.owner.y + self.offset_left_y
 
     def draw(self):
-        rect(int(self.x), int(self.y), int(self.width), int(self.height), 14)
+        if (not self.owner.dead):
+            rect(int(self.x), int(self.y), int(self.width), int(self.height), 14)
 
     def attack(self):
         if self.owner.attackTimer <= 0:
@@ -189,6 +190,7 @@ class Enemy:
         self.y = y
         self.width = 14
         self.height = 14
+        self.dx = -1
 
         self.hsp = 0
         self.vsp = 0
@@ -225,6 +227,20 @@ class Enemy:
         return False
 
     def update(self, colliders, damageTriggers):
+        # MOVEMENT
+        self.x = self.x + self.dx
+        if not self.dead and self.check_collision(6*self.dx, 0, colliders):
+            if not self.check_collision(3*self.dx, -9, colliders):
+                if self.check_collision(0, 1, colliders):
+                    self.dx = -self.dx
+                    self.facing *= -1
+        elif not self.dead and self.check_collision(3*self.dx, 0, colliders):
+            self.dx = -self.dx
+            self.facing *= -1
+        if not self.dead and self.x <= 0:
+            self.dx = 1
+            self.facing = 1
+        
         # GRAVITY
         if not self.check_collision(0, self.vsp + 1, colliders):
             self.vsp += 0.25
@@ -267,13 +283,15 @@ colliders = [
     Collidable(0, 120, 240, 16),
     Collidable(80, 90, 40, 10),
     Collidable(140, 70, 40, 10),
+    Collidable(0, 0, 5, 150),
+    Collidable(235, 0, 5, 150)
 ]
 
 playerDamageTriggers = [
     DamageTrigger(140, 45, 30, 30, 2)
 ]
 enemyDamageTriggers = [
-    DamageTrigger(150, 90, 30, 30, 2)
+    #DamageTrigger(150, 90, 30, 30, 2)
 ]
 
 enemies = []

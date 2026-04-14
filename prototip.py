@@ -55,6 +55,13 @@ class Player:
         self.dash_cooldown_max = 30
 
         self.dash_speed = 4
+        
+        self.health = 100
+        self.dead = False
+        
+        self.iframeTimer = 0
+        self.iframeTime = 90
+        
         self.facing = 1  # 1 = desno, -1 = lijevo
         
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
@@ -81,7 +88,6 @@ class Player:
             if d.check(self.hitbox) and self.iframeTimer <= 0:
                 self.health -= d.damage
                 self.iframeTimer = self.iframeTime
-                #print("Took damage, remaining health: " + str(self.health), 2, int(self.y), 12)
                 if self.health < 1:
                     self.dead = True
                 return True
@@ -91,6 +97,8 @@ class Player:
     def update(self, colliders, damageTriggers):
         if (self.dead):
             return
+        
+        print("Health: " + str(self.health), 175, 2, 12)
         
         # LEFT / RIGHT
         self.on_ground = self.check_collision(0, 1, colliders)
@@ -103,11 +111,11 @@ class Player:
                 self.coyote_timer -= 1
 
         # DEBUG
-        print("ground: " + str(self.on_ground), 2, 2, 12)
-        print("coyote: " + str(self.coyote_timer), 2, 10, 11)
-        print("buffer: " + str(self.jump_buffer), 2, 18, 10)
-        print("jumps: " + str(self.jumps_left), 2, 26, 9)
-        print("dash cd: " + str(self.dash_cooldown), 2, 34, 8)
+        print("ground: " + str(self.on_ground), 6, 2, 12)
+        print("coyote: " + str(self.coyote_timer), 6, 10, 11)
+        print("buffer: " + str(self.jump_buffer), 6, 18, 10)
+        print("jumps: " + str(self.jumps_left), 6, 26, 9)
+        print("dash cd: " + str(self.dash_cooldown), 6, 34, 8)
 
         if key(1):
             self.facing = -1
@@ -152,7 +160,7 @@ class Player:
             else:
                 self.vsp = 0
         else:
-            slef.vsp = 0
+            self.vsp = 0
         
         if self.jump_buffer > 0:
             self.jump_buffer -= 1
@@ -183,14 +191,11 @@ class Player:
         steps = int(abs(move_y))
         for i in range(steps):
             step = 1 if move_y > 0 else -1
-        self.check_damage_trigger(damageTriggers)
-        print("Health: " + str(self.health), 10, 2, 12)
 
             if not self.check_collision(0, step, colliders):
                 self.y += step
             else:
                 self.vsp = 0
-                break
 
         remainder = move_y - int(move_y)
         if remainder != 0:
@@ -202,10 +207,11 @@ class Player:
         self.hitbox.x = self.x
         self.hitbox.y = self.y
         
+        self.check_damage_trigger(damageTriggers)
+        
         self.iframeTimer -= 1
         if (self.iframeTimer <= 0):
             self.iframeTimer = 0
-        print("Iframe timer: " + str(self.iframeTimer), 10, 8, 12)
 
     def draw(self):
         if(not self.dead): rect(int(self.x), int(self.y), int(self.width), int(self.height), 5)
@@ -255,7 +261,6 @@ class Gun:
 
     def attack(self):
         if self.attackTimer <= 0:
-            print("Attack delay", 12, 16, 12)
             self.attackTimer = self.attackTimeDelay
 
 
@@ -284,7 +289,6 @@ class RangedWeapon(Gun):
         if self.attackTimer > 0:
             return
         Gun.attack(self)
-        print("Spawn projectile", 12, 2, 12)
         projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), int(self.damage), playerDamageTriggers, int(self.owner.facing))
         projectiles.append(projectile)
         enemyDamageTriggers.append(projectile.contactDamageTrigger)
@@ -398,7 +402,6 @@ class Enemy:
         for d in damageTriggers:
             if d.check(self.hitbox):
                 self.health -= d.damage
-                #print("Took damage, remaining health: " + str(self.health), 2, int(self.y), 12)
                 if self.health < 1:
                     self.dead = True
                 return True

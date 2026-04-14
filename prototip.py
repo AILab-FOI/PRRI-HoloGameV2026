@@ -189,21 +189,22 @@ class Katana(Gun):
 
 
 class RangedWeapon(Gun):
-    def __init__(self, owner):
+    def __init__(self, owner, attackTimeDelay, damage):
         Gun.__init__(self, owner)
-        self.attackTimeDelay = 45
-        self.damage = 2
+        self.attackTimeDelay = attackTimeDelay
+        self.damage = damage
     
     def attack(self):
         if self.attackTimer > 0:
             return
         Gun.attack(self)
         print("Spawn projectile", 12, 2, 12)
-        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), int(self.owner.facing))
+        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), int(self.damage), playerDamageTriggers, int(self.owner.facing))
         projectiles.append(projectile)
+        enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
 class Projectile:
-    def __init__(self, x, y, facing = 1):
+    def __init__(self, x, y, damage, damageTriggers, facing = 1):
         self.x = x
         self.y = y
         self.width = 4
@@ -217,7 +218,9 @@ class Projectile:
         self.destroyed = False
         
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
-        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 20)
+        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, damage)
+        
+        self.damageTriggers = damageTriggers
     
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -225,8 +228,7 @@ class Projectile:
 
         for c in colliders:
             if c.check(self):
-                if self in projectiles:
-                    projectiles.remove(self)
+                self.destroy()
                 return True
 
         self.x -= dx
@@ -236,22 +238,16 @@ class Projectile:
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
             if d.check(self.hitbox):
-                self.destroyed = True
-                if self in projectiles:
-                    projectiles.remove(self)
+                self.destroy()
     
     def update(self, colliders):
         # COLLISION X
         if self.check_collision(self.hsp, 0, colliders):
-            self.destroyed = True
-            if self in projectiles:
-                projectiles.remove(self)
+            self.destroy()
 
         # COLLISION Y
         if self.check_collision(0, self.vsp, colliders):
-            self.destroyed = True
-            if self in projectiles:
-                projectiles.remove(self)
+            self.destroy()
 
         # MOVE
         self.x += self.hsp * self.facing
@@ -264,10 +260,18 @@ class Projectile:
         self.contactDamageTrigger.y = self.y
         
         self.draw()
+        
+        self.check_damage_trigger(self.damageTriggers)
     
     def draw(self):
         if(not self.destroyed): 
             rect(int(self.x), int(self.y), int(self.width), int(self.height), 4)
+    
+    def destroy(self):
+        if self in projectiles:
+            projectiles.remove(self)
+        if self.contactDamageTrigger in enemyDamageTriggers:
+            enemyDamageTriggers.remove(self.contactDamageTrigger)
 
 # --- ENEMIES ---
 class Enemy:
@@ -370,7 +374,7 @@ class Enemy:
 
 # --- INIT ---
 player = Player()
-gun = RangedWeapon(player)
+gun = RangedWeapon(player, 30, 25)
 player.gun = gun
 
 enemy = Enemy(150, 90)

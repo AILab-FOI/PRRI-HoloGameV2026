@@ -28,8 +28,6 @@ def move_towards(a, b, v):
 # --- PLAYER ---
 class Player:
     def __init__(self):
-        self.attackTimer = 0
-
         self.x = 50
         self.y = 50
         self.width = 14
@@ -40,10 +38,15 @@ class Player:
         
         self.health = 100
         self.dead = False
+        
+        self.iframeTimer = 0
+        self.iframeTime = 90
 
         self.facing = 1   # 1 = right, -1 = left
         
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
+        
+        self.gun = None
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -61,8 +64,9 @@ class Player:
     
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
-            if d.check(self.hitbox):
+            if d.check(self.hitbox) and self.iframeTimer <= 0:
                 self.health -= d.damage
+                self.iframeTimer = self.iframeTime
                 #print("Took damage, remaining health: " + str(self.health), 2, int(self.y), 12)
                 if self.health < 1:
                     self.dead = True
@@ -105,15 +109,17 @@ class Player:
         # MOVE
         self.x += self.hsp
         self.y += self.vsp
-
-        if self.attackTimer > 0:
-            self.attackTimer -= 1
         
         self.check_damage_trigger(damageTriggers)
         print("Health: " + str(self.health), 10, 2, 12)
         
         self.hitbox.x = self.x
         self.hitbox.y = self.y
+        
+        self.iframeTimer -= 1
+        if (self.iframeTimer <= 0):
+            self.iframeTimer = 0
+        print("Iframe timer: " + str(self.iframeTimer), 10, 8, 12)
 
     def draw(self):
         if(not self.dead): rect(int(self.x), int(self.y), int(self.width), int(self.height), 5)
@@ -128,6 +134,7 @@ class Gun:
         self.width = 4
         self.height = 4
 
+        self.attackTimer = 0
         self.attackTimeDelay = 0
         self.damage = 0
 
@@ -146,21 +153,31 @@ class Gun:
         else:
             self.x = self.owner.x + self.offset_left_x
             self.y = self.owner.y + self.offset_left_y
+        
+        if key(24):
+            self.attack()
+        
+        if self.attackTimer > 0:
+            self.attackTimer -= 1
+        
+        if self.attackTimer <= 0:
+            self.attackTimer = 0
 
     def draw(self):
         if (not self.owner.dead):
             rect(int(self.x), int(self.y), int(self.width), int(self.height), 14)
 
     def attack(self):
-        if self.owner.attackTimer <= 0:
-            self.owner.attackTimer = self.attackTimeDelay
+        if self.attackTimer <= 0:
+            print("Attack delay", 12, 16, 12)
+            self.attackTimer = self.attackTimeDelay
 
 
 class Katana(Gun):
     def __init__(self, owner):
         Gun.__init__(self, owner)
-        self.attackTimeDelay = 1
-        self.damage = 1
+        self.owner.attackTimeDelay = 60
+        self.damage = 3
         self.width = 8
         self.height = 3
 
@@ -174,8 +191,83 @@ class Katana(Gun):
 class RangedWeapon(Gun):
     def __init__(self, owner):
         Gun.__init__(self, owner)
-        self.attackTimeDelay = 2
+        self.attackTimeDelay = 45
         self.damage = 2
+    
+    def attack(self):
+        if self.attackTimer > 0:
+            return
+        Gun.attack(self)
+        print("Spawn projectile", 12, 2, 12)
+        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), int(self.owner.facing))
+        projectiles.append(projectile)
+
+class Projectile:
+    def __init__(self, x, y, facing = 1):
+        self.x = x
+        self.y = y
+        self.width = 4
+        self.height = 4
+        
+        self.hsp = 2
+        self.vsp = 0
+        
+        self.facing = facing   # 1 = right, -1 = left
+        
+        self.destroyed = False
+        
+        self.hitbox = Collidable(self.x, self.y, self.width, self.height)
+        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 20)
+    
+    def check_collision(self, dx, dy, colliders):
+        self.x += dx
+        self.y += dy
+
+        for c in colliders:
+            if c.check(self):
+                if self in projectiles:
+                    projectiles.remove(self)
+                return True
+
+        self.x -= dx
+        self.y -= dy
+        return False
+    
+    def check_damage_trigger(self, damageTriggers):
+        for d in damageTriggers:
+            if d.check(self.hitbox):
+                self.destroyed = True
+                if self in projectiles:
+                    projectiles.remove(self)
+    
+    def update(self, colliders):
+        # COLLISION X
+        if self.check_collision(self.hsp, 0, colliders):
+            self.destroyed = True
+            if self in projectiles:
+                projectiles.remove(self)
+
+        # COLLISION Y
+        if self.check_collision(0, self.vsp, colliders):
+            self.destroyed = True
+            if self in projectiles:
+                projectiles.remove(self)
+
+        # MOVE
+        self.x += self.hsp * self.facing
+        self.y += self.vsp
+        
+        self.hitbox.x = self.x
+        self.hitbox.y = self.y
+        
+        self.contactDamageTrigger.x = self.x
+        self.contactDamageTrigger.y = self.y
+        
+        self.draw()
+    
+    def draw(self):
+        if(not self.destroyed): 
+            rect(int(self.x), int(self.y), int(self.width), int(self.height), 4)
 
 # --- ENEMIES ---
 class Enemy:
@@ -196,7 +288,7 @@ class Enemy:
         self.dead = False
         
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
-        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 2)
+        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 25)
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -278,7 +370,9 @@ class Enemy:
 
 # --- INIT ---
 player = Player()
-gun = Gun(player)
+gun = RangedWeapon(player)
+player.gun = gun
+
 enemy = Enemy(150, 90)
 # gun = Katana(player)
 
@@ -296,6 +390,8 @@ playerDamageTriggers = [
 enemyDamageTriggers = [
     #DamageTrigger(150, 90, 30, 30, 2)
 ]
+
+projectiles = []
 
 enemies = []
 enemies.append(enemy)
@@ -318,6 +414,10 @@ def TIC():
     # debug draw
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
+    
+    for pr in projectiles:
+        rect(int(pr.x), int(pr.y), int(pr.width), int(pr.height), 4)
+        pr.update(colliders)
     
     #for p in playerDamageTriggers:
         #rect(int(p.x), int(p.y), int(p.width), int(p.height), 7)

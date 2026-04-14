@@ -291,6 +291,9 @@ class Enemy:
         self.health = 100
         self.dead = False
         
+        self.iframe = 0
+        self.iframeMax = 10
+
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
         self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 25)
 
@@ -310,9 +313,9 @@ class Enemy:
     
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
-            if d.check(self.hitbox):
+            if d.check(self.hitbox) and self.iframe <= 0:
                 self.health -= d.damage
-                #print("Took damage, remaining health: " + str(self.health), 2, int(self.y), 12)
+                self.iframe = self.iframeMax
                 if self.health < 1:
                     self.dead = True
                 return True
@@ -363,6 +366,9 @@ class Enemy:
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
 
+        if self.iframe > 0:
+            self.iframe -= 1
+
     def draw(self):
         if(not self.dead): 
             rect(int(self.x), int(self.y), int(self.width), int(self.height), 2)
@@ -403,9 +409,30 @@ enemies.append(enemy)
 for e in enemies:
     playerDamageTriggers.append(e.contactDamageTrigger)
 
+
+
 # --- MAIN LOOP ---
 def TIC():
     cls(0)
+
+    # RESETING GAME
+    def reset_game():
+        global player, gun, enemy, enemies, projectiles, playerDamageTriggers, enemyDamageTriggers
+
+        player = Player()
+        gun = RangedWeapon(player, 30, 25)
+        player.gun = gun
+
+        enemy = Enemy(150, 90)
+        enemies = [enemy]
+
+        projectiles = []
+
+        playerDamageTriggers = []
+        enemyDamageTriggers = []
+
+        for e in enemies:
+            playerDamageTriggers.append(e.contactDamageTrigger)
 
     player.update(colliders, playerDamageTriggers)
     gun.update()
@@ -422,7 +449,15 @@ def TIC():
     for pr in projectiles:
         rect(int(pr.x), int(pr.y), int(pr.width), int(pr.height), 4)
         pr.update(colliders)
-    
+
+    # death
+    if player.dead:
+        print("GAME OVER", 90, 60, 12)
+        print("Press R to restart", 70, 70, 12)
+
+        if keyp(18):
+            reset_game()
+        return
     #for p in playerDamageTriggers:
         #rect(int(p.x), int(p.y), int(p.width), int(p.height), 7)
 

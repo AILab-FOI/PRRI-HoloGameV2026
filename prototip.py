@@ -110,14 +110,10 @@ class Player:
             self.attackTimer -= 1
         
         self.check_damage_trigger(damageTriggers)
+        print("Health: " + str(self.health), 10, 2, 12)
         
         self.hitbox.x = self.x
         self.hitbox.y = self.y
-        
-        print("self.x: " + str(self.x), 2, 2, 12)
-        print("self.y: " + str(self.y), 2, 8, 12)
-        print("self.hitbox.x: " + str(self.hitbox.x), 2, 14, 12)
-        print("self.hitbox.y: " + str(self.hitbox.y), 2, 20, 12)
 
     def draw(self):
         if(not self.dead): rect(int(self.x), int(self.y), int(self.width), int(self.height), 5)
@@ -200,6 +196,7 @@ class Enemy:
         self.dead = False
         
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
+        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 2)
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -263,6 +260,12 @@ class Enemy:
             self.attackTimer -= 1
             
         self.check_damage_trigger(damageTriggers)
+        
+        self.hitbox.x = self.x
+        self.hitbox.y = self.y
+        
+        self.contactDamageTrigger.x = self.x
+        self.contactDamageTrigger.y = self.y
 
     def draw(self):
         if(not self.dead): 
@@ -288,7 +291,7 @@ colliders = [
 ]
 
 playerDamageTriggers = [
-    DamageTrigger(140, 45, 30, 30, 2)
+    #DamageTrigger(140, 45, 30, 30, 2)
 ]
 enemyDamageTriggers = [
     #DamageTrigger(150, 90, 30, 30, 2)
@@ -296,6 +299,9 @@ enemyDamageTriggers = [
 
 enemies = []
 enemies.append(enemy)
+
+for e in enemies:
+    playerDamageTriggers.append(e.contactDamageTrigger)
 
 # --- MAIN LOOP ---
 def TIC():
@@ -313,8 +319,9 @@ def TIC():
     for c in colliders:
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
     
-    for p in playerDamageTriggers:
-        rect(int(p.x), int(p.y), int(p.width), int(p.height), 7)
+    #for p in playerDamageTriggers:
+        #rect(int(p.x), int(p.y), int(p.width), int(p.height), 7)
+
     #for c in enemies:
         #rect(int(c.x), int(c.y), int(c.width), int(c.height), 2)
 

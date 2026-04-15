@@ -1,0 +1,50 @@
+-- title:   game title
+-- author:  game developer, email, etc.
+-- desc:    short description
+-- site:    website link
+-- license: MIT License (change this to your license of choice)
+-- version: 0.1
+-- script:  lua
+
+t=0
+x=96
+y=24
+
+function TIC()
+
+	if btn(0) then y=y-1 end
+	if btn(1) then y=y+1 end
+	if btn(2) then x=x-1 end
+	if btn(3) then x=x+1 end
+
+	cls(13)
+	spr(1+t%60//30*2,x,y,14,3,0,0,2,2)
+	print("HELLO WORLD!",84,84)
+	t=t+1
+end
+
+# <SPRITES>
+# 000:00000011000001ee000e1ee100111667061e77260e66762600677666000fee67
+# 001:11000000ee1000001ee1e000766111006277e160626766e06667760076eef000
+# 016:000fbdd500ffbcd50f6fbbc5066ddcdd076ccddd0000eeff0000de00000eff00
+# 017:5ddbf000cdcbff00ccbbf6f0dddcd660ddddc670ffee000000ed000000ffe000
+# </SPRITES>
+
+# <WAVES>
+# 000:00000000ffffffff00000000ffffffff
+# 001:0123456789abcdeffedcba9876543210
+# 002:0123456789abcdef0123456789abcdef
+# </WAVES>
+
+# <SFX>
+# 000:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000304000000000
+# </SFX>
+
+# <TRACKS>
+# 000:100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# </TRACKS>
+
+# <PALETTE>
+# 000:1c1c1c895530ee1c18ef7d57ffcd75e214da30714425717929366f3b5dc941a6f600f2fff4f4f494b0c2566c86333c57
+# </PALETTE>
+

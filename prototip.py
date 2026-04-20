@@ -340,6 +340,8 @@ class Projectile:
                 self.destroy()
     
     def update(self, colliders):
+        self.check_damage_trigger(self.damageTriggers)
+        
         # COLLISION X
         if self.check_collision(self.hsp, 0, colliders):
             self.destroy()
@@ -359,18 +361,16 @@ class Projectile:
         self.contactDamageTrigger.y = self.y
         
         self.draw()
-        
-        self.check_damage_trigger(self.damageTriggers)
     
     def draw(self):
         if(not self.destroyed): 
             rect(int(self.x), int(self.y), int(self.width), int(self.height), 4)
     
     def destroy(self):
-        if self in projectiles:
-            projectiles.remove(self)
         if self.contactDamageTrigger in enemyDamageTriggers:
             enemyDamageTriggers.remove(self.contactDamageTrigger)
+        if self in projectiles:
+            projectiles.remove(self)
 
 # --- ENEMIES ---
 class Enemy:
@@ -390,7 +390,7 @@ class Enemy:
         self.health = 100
         self.dead = False
         
-        self.hitbox = Collidable(self.x, self.y, self.width, self.height)
+        self.hitbox = DamageTrigger(self.x, self.y, self.width, self.height, 25)
         self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 25)
 
     def check_collision(self, dx, dy, colliders):
@@ -409,7 +409,7 @@ class Enemy:
     
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
-            if d.check(self.hitbox):
+            if d.check(self.contactDamageTrigger):
                 self.health -= d.damage
                 sfx(2)
                 if self.health < 1:
@@ -461,6 +461,8 @@ class Enemy:
         
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
+        
+        print("Enemy health: " + str(self.health), 100, 20, 3)
 
     def draw(self):
         if(not self.dead): 
@@ -535,7 +537,7 @@ for e in enemies:
     playerDamageTriggers.append(e.contactDamageTrigger)
     
 background_tile_indexes = [
-    7, 8
+    7, 8, 25, 26
 ]
 
 # --- MAIN LOOP ---

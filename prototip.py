@@ -471,12 +471,44 @@ class Enemy:
         if self.health < 1:
             self.dead = True
 
+# --- MISC FUNCTIONS ---
+def TileCollisions(objectList, level, level_height):
+    collidables = {}
+    tile_size = 8
+    for object in objectList:
+        collisionWidth = 8
+        if not isinstance (object, list):
+            px = min(max(int(object.x/tile_size) - round(collisionWidth/2), 0), 239)
+            py = min(max(int(object.y/tile_size) - round(collisionWidth/2), 0), 135)
+
+            for xx in range(collisionWidth):
+                for yy in range(collisionWidth):
+                    tileHere = mget(xx + px, yy + py + level*level_height)
+                    if tileHere != 0 and tileHere not in background_tile_indexes:
+                        pos_key = ("x", xx + px, "y", yy + py)
+                        if pos_key not in collidables:
+                            collidables[pos_key] = Collidable((xx + px)*tile_size, (yy + py)*tile_size, tile_size, tile_size)
+        else:
+            for obj in object:
+                px = min(max(int(obj.x/tile_size) - round(collisionWidth/2), 0), 239)
+                py = min(max(int(obj.y/tile_size) - round(collisionWidth/2), 0), 135)
+
+                for xx in range(collisionWidth):
+                    for yy in range(collisionWidth):
+                        tileHere = mget(xx + px, yy + py + level*level_height)
+                        if tileHere != 0 and tileHere not in background_tile_indexes:
+                            pos_key = ("x", xx + px, "y", yy + py)
+                            if pos_key not in collidables:
+                                collidables[pos_key] = Collidable((xx + px)*tile_size, (yy + py)*tile_size, tile_size, tile_size)
+
+    return list(collidables.values())
+
 # --- INIT ---
 player = Player()
 gun = RangedWeapon(player, 30, 25)
 player.gun = gun
 
-enemy = Enemy(150, 90)
+enemy = Enemy(120, 70)
 # gun = Katana(player)
 
 colliders = [
@@ -501,28 +533,34 @@ enemies.append(enemy)
 
 for e in enemies:
     playerDamageTriggers.append(e.contactDamageTrigger)
+    
+background_tile_indexes = [
+    7, 8
+]
 
 # --- MAIN LOOP ---
 def TIC():
     cls(0)
     map(0, 0, 30, 17, 0, 0)
+    
+    collidables = TileCollisions([player, enemies], 0, 17)
+    
     #music(0)
-    player.update(colliders, playerDamageTriggers)
+    player.update(collidables, playerDamageTriggers)
     gun.update()
-    enemy.update(colliders, enemyDamageTriggers)
+    enemy.update(collidables, enemyDamageTriggers)
 
     player.draw()
     gun.draw()
     enemy.draw()
 
-
     # debug draw
-    for c in colliders:
-        rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
+    #for c in colliders:
+        #rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
     
     for pr in projectiles:
         rect(int(pr.x), int(pr.y), int(pr.width), int(pr.height), 4)
-        pr.update(colliders)
+        pr.update(collidables)
     
     #for p in playerDamageTriggers:
         #rect(int(p.x), int(p.y), int(p.width), int(p.height), 7)

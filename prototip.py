@@ -67,6 +67,7 @@ class Player:
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
         
         self.gun = None
+        self.hasGun = True
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -115,9 +116,9 @@ class Player:
         print("buffer: " + str(self.jump_buffer), 6, 18, 10)
         print("jumps: " + str(self.jumps_left), 6, 26, 9)
         print("dash cd: " + str(self.dash_cooldown), 6, 34, 8)
-
+        print("gun?" + str(self.hasGun), 6, 42, 7)
         if key(5):
-            sfx(02)
+            sfx(2)
 
         if key(1):
             self.facing = -1
@@ -132,6 +133,14 @@ class Player:
                 self.hsp = move_towards(self.hsp, 0, 0.3)
         else:
             self.hsp = self.facing * self.dash_speed
+
+        #Switch weapons
+        if keyp(6):
+            if(self.hasGun):
+                self.hasGun=False
+                print("SLASHIN TIME!", 6, 50, 6)
+            else:
+                self.hasGun=True    
 
         # JUMP INPUT
         if keyp(23):
@@ -376,7 +385,6 @@ class Projectile:
         self.contactDamageTrigger.y = self.y
         
         if (self.temporary):
-            print("temp: " + str(self.timer), 20, 20, 12)
             if self.timer > 0:
                 self.timer -= 1
             else: 
@@ -550,11 +558,10 @@ def TileCollisions(objectList, level, level_height):
 player = Player()
 gun = RangedWeapon(player, 30, 25)
 katana = Katana(player, 60, 25)
-player.gun = gun
-#player.gun = katana
+
+
 
 enemy = Enemy(120, 70)
-# gun = Katana(player)
 
 colliders = [
     Collidable(0, 120, 240, 16),
@@ -610,13 +617,19 @@ def TIC():
             playerDamageTriggers.append(e.contactDamageTrigger)
 
     player.update(colliders, playerDamageTriggers)
-    gun.update()
-    #katana.update()
+    if(player.hasGun): 
+        player.gun = gun   
+        gun.update()
+    else:
+        player.gun = katana
+        katana.update()
     enemy.update(colliders, enemyDamageTriggers)
 
     player.draw()
-    gun.draw()
-    #katana.draw()
+    if(player.hasGun):
+        gun.draw()
+    else:
+        katana.draw()
     enemy.draw()
 
     # debug draw

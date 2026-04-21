@@ -116,7 +116,7 @@ class Player:
         print("buffer: " + str(self.jump_buffer), 6, 18, 10)
         print("jumps: " + str(self.jumps_left), 6, 26, 9)
         print("dash cd: " + str(self.dash_cooldown), 6, 34, 8)
-        print("gun?" + str(self.hasGun), 6, 42, 7)
+        
         if key(5):
             sfx(2)
 
@@ -138,7 +138,7 @@ class Player:
         if keyp(6):
             if(self.hasGun):
                 self.hasGun=False
-                print("SLASHIN TIME!", 6, 50, 6)
+                
             else:
                 self.hasGun=True    
 
@@ -262,7 +262,7 @@ class Gun:
             self.x = self.owner.x + self.offset_left_x
             self.y = self.owner.y + self.offset_left_y
         
-        if key(24):
+        if keyp(24):
             self.attack()
         
         if self.attackTimer > 0:
@@ -309,6 +309,9 @@ class RangedWeapon(Gun):
         Gun.__init__(self, owner)
         self.attackTimeDelay = attackTimeDelay
         self.damage = damage
+        self.bigshotTimer = 0
+
+    
     
     def attack(self):
         if self.attackTimer > 0:
@@ -318,8 +321,24 @@ class RangedWeapon(Gun):
         projectiles.append(projectile)
         enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
+    def big_shot(self):
+        if self.attackTimer > 0:
+            return    
+        Gun.attack(self)
+        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 8, 8, int(self.damage) * 3, playerDamageTriggers, 2, int(self.owner.facing))
+        projectiles.append(projectile)
+        enemyDamageTriggers.append(projectile.contactDamageTrigger)
+
+    def update(self):
+        if key(24):
+            self.bigshotTimer += 1
+            if self.bigshotTimer >= 180:
+                print("[BIG SHOT!]",  6, 50, 4)
+                self.big_shot()
+                self.bigshotTimer = 0
+
 class Projectile:
-    def __init__(self, x, y, width, height, damage, damageTriggers, hsp = 2, facing = 1, duration = -1, checkCollision = True, drawSelf = True):
+    def __init__(self, x, y, width, height, damage, damageTriggers, hsp = 2, facing = 1, duration = -1, checkCollision = True, drawSelf = True, multiplier = 1):
         self.x = x
         self.y = y - height / 2
         self.width = width
@@ -346,6 +365,7 @@ class Projectile:
             
         if (self.facing == -1):
             self.x -= self.width
+
     
     def check_collision(self, dx, dy, colliders):
         if (not self.checkCollision): return None 
@@ -404,6 +424,7 @@ class Projectile:
             enemyDamageTriggers.remove(self.contactDamageTrigger)
         
         self.destroyed = True
+
 
 # --- ENEMIES ---
 class Enemy:

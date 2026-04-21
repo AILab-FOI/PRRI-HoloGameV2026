@@ -272,10 +272,10 @@ class Gun:
 
 
 class Katana(Gun):
-    def __init__(self, owner):
+    def __init__(self, owner, attackTimeDelay, damage):
         Gun.__init__(self, owner)
-        self.owner.attackTimeDelay = 60
-        self.damage = 3
+        self.attackTimeDelay = attackTimeDelay
+        self.damage = damage
         self.width = 8
         self.height = 3
 
@@ -284,6 +284,14 @@ class Katana(Gun):
 
         self.offset_left_x = -8
         self.offset_left_y = 5
+        
+    def attack(self):
+        if self.attackTimer > 0:
+            return
+        Gun.attack(self)
+        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 60, 30, int(self.damage), playerDamageTriggers, 0, int(self.owner.facing), 1, False, False)
+        projectiles.append(projectile)
+        enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
 
 class RangedWeapon(Gun):
@@ -296,30 +304,42 @@ class RangedWeapon(Gun):
         if self.attackTimer > 0:
             return
         Gun.attack(self)
-        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), int(self.damage), playerDamageTriggers, int(self.owner.facing))
+        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 4, 4, int(self.damage), playerDamageTriggers, 2, int(self.owner.facing))
         projectiles.append(projectile)
         enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
 class Projectile:
-    def __init__(self, x, y, damage, damageTriggers, facing = 1):
+    def __init__(self, x, y, width, height, damage, damageTriggers, hsp = 2, facing = 1, duration = -1, checkCollision = True, drawSelf = True):
         self.x = x
-        self.y = y
-        self.width = 4
-        self.height = 4
+        self.y = y - height / 2
+        self.width = width
+        self.height = height
         
-        self.hsp = 2
+        self.hsp = hsp
         self.vsp = 0
         
         self.facing = facing   # 1 = right, -1 = left
         
         self.destroyed = False
+        self.checkCollision = checkCollision
+        self.drawSelf = drawSelf
         
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
         self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, damage)
         
         self.damageTriggers = damageTriggers
+        
+        self.temporary = False
+        self.timer = -1
+        if (duration != -1):
+            self.temporary = True
+            self.timer = duration
+            
+        if (self.facing == -1):
+            self.x -= self.width
     
     def check_collision(self, dx, dy, colliders):
+        if (not self.checkCollision): return None 
         self.x += dx
         self.y += dy
 
@@ -348,7 +368,7 @@ class Projectile:
         if self.check_collision(0, self.vsp, colliders):
             self.destroy()
 
-        # MOVE
+        # MOVE    
         self.x += self.hsp * self.facing
         self.y += self.vsp
         
@@ -358,7 +378,14 @@ class Projectile:
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
         
-        self.draw()
+        if (self.temporary):
+            print("temp: " + str(self.timer), 20, 20, 12)
+            if self.timer > 0:
+                self.timer -= 1
+            else: 
+                self.destroy()
+        
+        if(self.drawSelf): self.draw()
     
     def draw(self):
         if(not self.destroyed): 
@@ -409,12 +436,14 @@ class Enemy:
     
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
-            if d.check(self.contactDamageTrigger) and self.iframe <= 0:
-                self.health -= d.damage
-                self.iframe = self.iframeMax
-                sfx(2)
+            if d.check(self.contactDamageTrigger):
+                if self.iframe <= 0:
+                    self.health -= d.damage
+                    self.iframe = self.iframeMax
+                    sfx(2)
                 if self.health < 1:
                     self.dead = True
+                    self.destroy()
                 return True
         
         return False
@@ -463,6 +492,8 @@ class Enemy:
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
         
+        print("Enemy health: " + str(self.health), 100, 20, 3)
+        
         if self.iframe > 0:
             self.iframe -= 1
 
@@ -474,6 +505,12 @@ class Enemy:
         self.health = self.health - damage
         if self.health < 1:
             self.dead = True
+            
+    def destroy(self):
+        if self.contactDamageTrigger in playerDamageTriggers:
+            playerDamageTriggers.remove(self.contactDamageTrigger)
+        if self in enemies:
+            enemies.remove(self)
 
 # --- MISC FUNCTIONS ---
 def TileCollisions(objectList, level, level_height):
@@ -510,7 +547,9 @@ def TileCollisions(objectList, level, level_height):
 # --- INIT ---
 player = Player()
 gun = RangedWeapon(player, 30, 25)
-player.gun = gun
+katana = Katana(player, 60, 25)
+#player.gun = gun
+player.gun = katana
 
 enemy = Enemy(120, 70)
 # gun = Katana(player)
@@ -569,11 +608,13 @@ def TIC():
             playerDamageTriggers.append(e.contactDamageTrigger)
 
     player.update(colliders, playerDamageTriggers)
-    gun.update()
+    #gun.update()
+    katana.update()
     enemy.update(colliders, enemyDamageTriggers)
 
     player.draw()
-    gun.draw()
+    #gun.draw()
+    katana.draw()
     enemy.draw()
 
     # debug draw
@@ -581,7 +622,6 @@ def TIC():
         rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
     
     for pr in projectiles:
-        rect(int(pr.x), int(pr.y), int(pr.width), int(pr.height), 4)
         pr.update(colliders)
 
     # death

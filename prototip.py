@@ -390,7 +390,9 @@ class Enemy:
         self.health = 100
         self.dead = False
         
-        self.hitbox = DamageTrigger(self.x, self.y, self.width, self.height, 25)
+        self.iframe = 0
+        self.iframeMax = 10
+        
         self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 25)
 
     def check_collision(self, dx, dy, colliders):
@@ -409,8 +411,9 @@ class Enemy:
     
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
-            if d.check(self.contactDamageTrigger):
+            if d.check(self.contactDamageTrigger) and self.iframe <= 0:
                 self.health -= d.damage
+                self.iframe = self.iframeMax
                 sfx(2)
                 if self.health < 1:
                     self.dead = True
@@ -454,11 +457,11 @@ class Enemy:
         if self.attackTimer > 0:
             self.attackTimer -= 1
             
+        if self.iframe > 0:
+            self.iframe -= 1
+            
         self.check_damage_trigger(damageTriggers)
-        
-        self.hitbox.x = self.x
-        self.hitbox.y = self.y
-        
+
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
         

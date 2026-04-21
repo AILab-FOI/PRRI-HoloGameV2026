@@ -12,10 +12,11 @@ class Collidable:
         return self.x < other.x + other.width and self.x + self.width > other.x and self.y < other.y + other.height and self.y + self.height > other.y
 
 class DamageTrigger(Collidable):
-    def __init__(self, x, y, w, h, damage):
+    def __init__(self, x, y, w, h, damage, owner = None):
         Collidable.__init__(self, x, y, w, h)
         
         self.damage = damage
+        self.owner = owner
 
 # --- HELPER ---
 def move_towards(a, b, v):
@@ -323,9 +324,8 @@ class Projectile:
         self.destroyed = False
         self.checkCollision = checkCollision
         self.drawSelf = drawSelf
-        
-        self.hitbox = Collidable(self.x, self.y, self.width, self.height)
-        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, damage)
+
+        self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, damage, self)
         
         self.damageTriggers = damageTriggers
         
@@ -354,12 +354,10 @@ class Projectile:
     
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
-            if d.check(self.hitbox):
+            if d.check(self.contactDamageTrigger):
                 self.destroy()
     
     def update(self, colliders):
-        self.check_damage_trigger(self.damageTriggers)
-        
         # COLLISION X
         if self.check_collision(self.hsp, 0, colliders):
             self.destroy()
@@ -367,13 +365,12 @@ class Projectile:
         # COLLISION Y
         if self.check_collision(0, self.vsp, colliders):
             self.destroy()
-
+            
+        #self.check_damage_trigger(self.damageTriggers)
+        
         # MOVE    
         self.x += self.hsp * self.facing
         self.y += self.vsp
-        
-        self.hitbox.x = self.x
-        self.hitbox.y = self.y
         
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
@@ -390,12 +387,15 @@ class Projectile:
     def draw(self):
         if(not self.destroyed): 
             rect(int(self.x), int(self.y), int(self.width), int(self.height), 4)
+            rect(int(self.contactDamageTrigger.x), int(self.contactDamageTrigger.y), int(self.contactDamageTrigger.width), int(self.contactDamageTrigger.height), 6)
     
     def destroy(self):
-        if self.contactDamageTrigger in enemyDamageTriggers:
-            enemyDamageTriggers.remove(self.contactDamageTrigger)
         if self in projectiles:
             projectiles.remove(self)
+        if self.contactDamageTrigger in enemyDamageTriggers:
+            enemyDamageTriggers.remove(self.contactDamageTrigger)
+        
+        self.destroyed = True
 
 # --- ENEMIES ---
 class Enemy:
@@ -444,6 +444,8 @@ class Enemy:
                 if self.health < 1:
                     self.dead = True
                     self.destroy()
+                
+                d.owner.destroy()
                 return True
         
         return False
@@ -548,8 +550,8 @@ def TileCollisions(objectList, level, level_height):
 player = Player()
 gun = RangedWeapon(player, 30, 25)
 katana = Katana(player, 60, 25)
-#player.gun = gun
-player.gun = katana
+player.gun = gun
+#player.gun = katana
 
 enemy = Enemy(120, 70)
 # gun = Katana(player)
@@ -608,13 +610,13 @@ def TIC():
             playerDamageTriggers.append(e.contactDamageTrigger)
 
     player.update(colliders, playerDamageTriggers)
-    #gun.update()
-    katana.update()
+    gun.update()
+    #katana.update()
     enemy.update(colliders, enemyDamageTriggers)
 
     player.draw()
-    #gun.draw()
-    katana.draw()
+    gun.draw()
+    #katana.draw()
     enemy.draw()
 
     # debug draw

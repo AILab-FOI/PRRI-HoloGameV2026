@@ -61,8 +61,7 @@ class Player:
         
         self.iframeTimer = 0
         self.iframeTime = 90
-        
-        self.facing = 1  # 1 = desno, -1 = lijevo
+        self.facing = 1   # 1 = right, -1 = left
         
         self.hitbox = Collidable(self.x, self.y, self.width, self.height)
         
@@ -72,16 +71,15 @@ class Player:
         self.x += dx
         self.y += dy
 
-        hit = False
         for c in colliders:
             if c.check(self):
-                hit = True
-                break
+                self.x -= dx
+                self.y -= dy
+                return True
 
         self.x -= dx
         self.y -= dy
-
-        return hit
+        return False
     
     def check_damage_trigger(self, damageTriggers):
         for d in damageTriggers:
@@ -547,7 +545,9 @@ background_tile_indexes = [
 # --- MAIN LOOP ---
 def TIC():
     cls(0)
-    map(0, 0, 30, 17, 0, 0)
+    #map(0, 0, 30, 17, 0, 0)
+    
+    #collidables = TileCollisions([player, enemies], 0, 17)
     
     # RESETING GAME
     def reset_game():
@@ -568,20 +568,21 @@ def TIC():
         for e in enemies:
             playerDamageTriggers.append(e.contactDamageTrigger)
 
+    player.update(colliders, playerDamageTriggers)
     gun.update()
-    enemy.update(collidables, enemyDamageTriggers)
+    enemy.update(colliders, enemyDamageTriggers)
 
     player.draw()
     gun.draw()
     enemy.draw()
 
     # debug draw
-    #for c in colliders:
-        #rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
+    for c in colliders:
+        rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
     
     for pr in projectiles:
         rect(int(pr.x), int(pr.y), int(pr.width), int(pr.height), 4)
-        pr.update(collidables)
+        pr.update(colliders)
 
     # death
     if player.dead:

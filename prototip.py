@@ -310,31 +310,21 @@ class RangedWeapon(Gun):
         self.attackTimeDelay = attackTimeDelay
         self.damage = damage
         self.bigshotTimer = 0
-
     
-    
-    def attack(self):
+    def attack(self, sizeMultiplier = 1, damageMultiplier = 1):
         if self.attackTimer > 0:
             return
         Gun.attack(self)
-        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 4, 4, int(self.damage), playerDamageTriggers, 2, int(self.owner.facing))
-        projectiles.append(projectile)
-        enemyDamageTriggers.append(projectile.contactDamageTrigger)
-
-    def big_shot(self):
-        if self.attackTimer > 0:
-            return    
-        Gun.attack(self)
-        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 8, 8, int(self.damage) * 3, playerDamageTriggers, 2, int(self.owner.facing))
+        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 4 * sizeMultiplier, 4 * sizeMultiplier, int(self.damage) * damageMultiplier, playerDamageTriggers, 2, int(self.owner.facing))
         projectiles.append(projectile)
         enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
     def update(self):
+        Gun.update(self)
         if key(24):
             self.bigshotTimer += 1
             if self.bigshotTimer >= 180:
-                print("[BIG SHOT!]",  6, 50, 4)
-                self.big_shot()
+                self.attack(2, 3)
                 self.bigshotTimer = 0
 
 class Projectile:

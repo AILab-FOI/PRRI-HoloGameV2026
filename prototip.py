@@ -405,7 +405,6 @@ class Projectile:
     def draw(self):
         if(not self.destroyed): 
             rect(int(self.x), int(self.y), int(self.width), int(self.height), 4)
-            rect(int(self.contactDamageTrigger.x), int(self.contactDamageTrigger.y), int(self.contactDamageTrigger.width), int(self.contactDamageTrigger.height), 6)
     
     def destroy(self):
         if self in projectiles:
@@ -513,7 +512,7 @@ class Enemy:
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
         
-        print("Enemy health: " + str(self.health), 100, 20, 3)
+        #print("Enemy health: " + str(self.health), 100, 20, 3)
         
         if self.iframe > 0:
             self.iframe -= 1
@@ -604,9 +603,9 @@ background_tile_indexes = [
 # --- MAIN LOOP ---
 def TIC():
     cls(0)
-    #map(0, 0, 30, 17, 0, 0)
+    map(0, 0, 30, 17, 0, 0)
     
-    #collidables = TileCollisions([player, enemies], 0, 17)
+    collidables = TileCollisions([player, enemies], 0, 17)
     
     # RESETING GAME
     def reset_game():
@@ -627,14 +626,14 @@ def TIC():
         for e in enemies:
             playerDamageTriggers.append(e.contactDamageTrigger)
 
-    player.update(colliders, playerDamageTriggers)
+    player.update(collidables, playerDamageTriggers)
     if(player.hasGun): 
         player.gun = gun   
         gun.update()
     else:
         player.gun = katana
         katana.update()
-    enemy.update(colliders, enemyDamageTriggers)
+    enemy.update(collidables, enemyDamageTriggers)
 
     player.draw()
     if(player.hasGun):
@@ -644,11 +643,11 @@ def TIC():
     enemy.draw()
 
     # debug draw
-    for c in colliders:
-        rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
+    #for c in colliders:
+        #rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
     
     for pr in projectiles:
-        pr.update(colliders)
+        pr.update(collidables)
 
     # death
     if player.dead:

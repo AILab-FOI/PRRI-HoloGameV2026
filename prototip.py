@@ -248,12 +248,12 @@ class Gun:
         self.damage = 0
 
         # right offset
-        self.offset_right_x = 15
-        self.offset_right_y = 4
+        self.offset_right_x = 10
+        self.offset_right_y = 6
 
         # left offset 
-        self.offset_left_x = -5
-        self.offset_left_y = 4
+        self.offset_left_x = -3
+        self.offset_left_y = 6
 
     def update(self):
         if self.owner.dead:
@@ -276,8 +276,10 @@ class Gun:
 
     def draw(self):
         if (not self.owner.dead):
-            rect(int(self.x -cam_x), int(self.y -cam_y), int(self.width), int(self.height), 14)
-
+            if self.owner.facing == 1:
+                spr(266, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 1, 1)
+            else:
+                spr(266, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 1, 1)
     def attack(self):
         if self.attackTimer <= 0:
             self.attackTimer = self.attackTimeDelay
@@ -405,10 +407,10 @@ class Projectile:
         
         if(self.drawSelf): self.draw()
     
-    def draw(self):
-        if(not self.destroyed): 
-            rect(int(self.x -cam_x), int(self.y -cam_y), int(self.width), int(self.height), 4)
-    
+    def draw(self):  
+        if not self.destroyed:
+            rect(int(self.x - cam_x), int(self.y - cam_y), int(self.width), int(self.height), 4)
+
     def destroy(self):
         if self in projectiles:
             projectiles.remove(self)
@@ -795,6 +797,9 @@ def TIC():
 # 005:00000000ddd00000d5dd00005ddd0000dddd0000dddd0000dddd0000ddd00000
 # 006:0000000000000ddd0000ddd50000dddd0000dddd0000dddd0000dddd000000dd
 # 007:00000000ddd00000dddd00005ddd0000d5dd0000dd5d0000dddd0000ddd00000
+# 008:0000000000000000004440000044440000444000000000000000000000000000
+# 009:0000000000000000000444000044440000044400000000000000000000000000
+# 010:000000000000000000eeeee000eeeee000ee0e0000eee00000ee000000000000
 # 016:000ffccf000ffccf000ffccf000ffccf0004ffff0000ff000000ff00000fff00
 # 017:cccf0000cccf0000cccf0000cccf0000ffff000000ff000000ff00000fff0000
 # 018:0000fccf0000fccf0000fccf0000fccf0000ffff0000ff000000ff000000fff0

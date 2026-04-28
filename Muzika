@@ -1,1 +1,37 @@
+bass={9,9,12,7,9,9,5,3}
+lead={21,-1,24,22,21,-1,19,17}
+arp={9,12,16,9,7,10,14,7}
 
+bi,li,ai=1,1,1
+bt,lt,at=0,0,0
+t=0
+
+function TIC()
+ if bt<=0 then
+  if bass[bi]>=0 then
+   sfx(0,bass[bi]+24,30,0,12)
+  end
+  bt=18 bi=bi%#bass+1
+ end
+ bt=bt-1
+
+ if lt<=0 then
+  if lead[li]>=0 then
+   sfx(1,lead[li]+36,30,1,9)
+  end
+  lt=15 li=li%#lead+1
+ end
+ lt=lt-1
+
+ if at<=0 then
+  sfx(2,arp[ai]+48,30,2,6)
+  at=5 ai=ai%#arp+1
+ end
+ at=at-1
+
+ t=t+1
+ if t%80==0 then sfx(3,25,15,3,4) end
+
+ cls(0)
+ print("CYBERPUNK BGM",80,112,6)
+end

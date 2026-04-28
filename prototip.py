@@ -525,12 +525,11 @@ class Enemy:
             self.iframe -= 1
 
     def draw(self):
-        if not self.dead: 
-        
+        if not self.dead:
             if self.facing == 1:
-                spr(262, int(self.x), int(self.y), 0, 1, 1, 0, 2, 2)
+                spr(262, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 2, 2)
             else:
-                spr(260, int(self.x), int(self.y), 0, 1, 0, 0, 2, 2)
+                spr(260, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
     
     def TakeDamage(self, damage, removeInt):
         self.health = self.health - damage
@@ -665,14 +664,18 @@ def TIC():
     else:
         player.gun = katana
         katana.update()
-    enemy.update(collidables, enemyDamageTriggers)
+    for e in enemies[:]:
+        e.update(collidables, enemyDamageTriggers)
 
     player.draw()
-    if(player.hasGun):
+
+    if player.hasGun:
         gun.draw()
     else:
         katana.draw()
-    enemy.draw()
+
+    for e in enemies:   
+        e.draw()
 
     # debug draw
     #for c in colliders:

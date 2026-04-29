@@ -574,14 +574,43 @@ def TileCollisions(objectList, level, level_height):
 
     return list(collidables.values())
 
+
+class SmallEnemy(Enemy):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+
+        self.health = 30
+        self.width = 12
+        self.height = 12
+        self.dx = -1.5
+
+        self.iframe = 0
+        self.iframeMax = 8
+
+        # Smaller contact/damage hitbox
+        self.contactDamageTrigger = DamageTrigger(
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            10
+        )
+
+    def draw(self):
+        if not self.dead:
+            flip = 0
+            if self.facing == -1:
+                flip = 1
+
+            spr(267, int(self.x - cam_x), int(self.y - cam_y), 0, 1, flip, 0, 2, 2)
+
+
 # --- INIT ---
 player = Player()
 gun = RangedWeapon(player, 30, 25)
 katana = Katana(player, 60, 25)
 
 
-
-enemy = Enemy(120, 70)
 
 colliders = [
     Collidable(0, 120, 240, 16),
@@ -600,8 +629,12 @@ enemyDamageTriggers = [
 
 projectiles = []
 
+enemy = Enemy(120, 70)
+small_enemy = SmallEnemy(160, 70)
+
 enemies = []
 enemies.append(enemy)
+enemies.append(small_enemy)
 
 for e in enemies:
     playerDamageTriggers.append(e.contactDamageTrigger)
@@ -817,6 +850,7 @@ def TIC():
 # 008:0000000000000000004440000044440000444000000000000000000000000000
 # 009:0000000000000000000444000044440000044400000000000000000000000000
 # 010:000000000000000000eeeee000eeeee000ee0e0000eee00000ee000000000000
+# 012:000000000000000000000000000000000000000000000000000aaaa000aa00aa
 # 016:000ffccf000ffccf000ffccf000ffccf0004ffff0000ff000000ff00000fff00
 # 017:cccf0000cccf0000cccf0000cccf0000ffff000000ff000000ff00000fff0000
 # 018:0000fccf0000fccf0000fccf0000fccf0000ffff0000ff000000ff000000fff0
@@ -825,6 +859,8 @@ def TIC():
 # 021:dddd0000d5dd0000dddd0000d5dd0000dddd000000dd000000dd00000ddd0000
 # 022:00000ddd0000dd5d0000dddd0000dd5d0000dddd0000dd000000dd000000ddd0
 # 023:dddd0000d5ddd000dddd5000d5ddd000ddddd00000dd000000dd000000ddd000
+# 027:0000000000000000000000000000aaa00000aaab000bbbbb00bbbbbb00bbbbbb
+# 028:00a0000a00aaa00a0000000a0000000abb0000a0bbbb00a0bbbbbaa0bbbbb000
 # </SPRITES>
 
 # <MAP>

@@ -29,8 +29,13 @@ def move_towards(a, b, v):
 # --- PLAYER ---
 class Player:
     def __init__(self):
+        #koordinate za pocetak igrice
+        #self.x = 600
+        #self.y = 203
+
         self.x = 50
         self.y = 50
+    
         self.width = 14
         self.height = 14
 
@@ -111,11 +116,11 @@ class Player:
                 self.coyote_timer -= 1
 
         # DEBUG
-        print("ground: " + str(self.on_ground), 6, 2, 12)
-        print("coyote: " + str(self.coyote_timer), 6, 10, 11)
-        print("buffer: " + str(self.jump_buffer), 6, 18, 10)
-        print("jumps: " + str(self.jumps_left), 6, 26, 9)
-        print("dash cd: " + str(self.dash_cooldown), 6, 34, 8)
+        #print("ground: " + str(self.on_ground), 6, 2, 12)
+        #print("coyote: " + str(self.coyote_timer), 6, 10, 11)
+        #print("buffer: " + str(self.jump_buffer), 6, 18, 10)
+        #print("jumps: " + str(self.jumps_left), 6, 26, 9)
+        #print("dash cd: " + str(self.dash_cooldown), 6, 34, 8)
         
         if key(5):
             sfx(2)
@@ -658,10 +663,51 @@ def update_camera():
     if cam_y < 0:
         cam_y = 0
 
+bass = [9, 9, 12, 7, 9, 9, 5, 3]
+lead = [21, -1, 24, 22, 21, -1, 19, 17]
+arp = [9, 12, 16, 9, 7, 10, 14, 7]
+
+bi = 0
+li = 0
+ai = 0
+bt = 24
+lt = 32
+at = 16
+music_t = 0
+
+def update_bgm():
+    global bi, li, ai, bt, lt, at, music_t
+
+    if bt <= 0:
+        if bass[bi] >= 0:
+            sfx(0, bass[bi] + 24, 20, 0, 6)
+        bt = 18
+        bi = (bi + 1) % len(bass)
+    bt -= 1
+
+    if lt <= 0:
+        if lead[li] >= 0:
+            sfx(1, lead[li] + 36, 18, 1, 4)
+        lt = 15
+        li = (li + 1) % len(lead)
+    lt -= 1
+
+   # if at <= 0:
+    #    sfx(2, arp[ai] + 48, 10, 2, 2)
+     #   at = 5
+      #  ai = (ai + 1) % len(arp)
+   # at -= 1
+
+    music_t += 1
+    if music_t % 80 == 0:
+        sfx(3, 25, 10, 3, 2)
+
+
 
 # --- MAIN LOOP ---
 def TIC():
     cls(0)
+    update_bgm()
     update_camera()
     map(0, 0, 240, 136, -cam_x, -cam_y)
     

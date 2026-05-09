@@ -579,6 +579,23 @@ def TileCollisions(objectList, level, level_height):
 
     return list(collidables.values())
 
+class Level:
+    def __init__(self, x, y, sizeX, sizeY, mapX, mapY):
+        self.startingPosX = x
+        self.startingPosY = y
+        
+        self.sizeX = sizeX
+        self.sizeY = sizeY
+        
+        self.mapX = mapX
+        self.mapY = mapY
+    
+    def LoadLevel(self):
+        player.x = self.startingPosX
+        player.y = self.startingPosY
+        
+        player.hsp = 0
+        player.vsp = 0
 
 class SmallEnemy(Enemy):
     def __init__(self, x, y):
@@ -615,15 +632,13 @@ player = Player()
 gun = RangedWeapon(player, 30, 25)
 katana = Katana(player, 60, 25)
 
-
-
-colliders = [
-    Collidable(0, 120, 240, 16),
-    Collidable(80, 90, 40, 10),
-    Collidable(140, 70, 40, 10),
-    Collidable(0, 0, 5, 150),
-    Collidable(235, 0, 5, 150)
-]
+#colliders = [
+#    Collidable(0, 120, 240, 16),
+#    Collidable(80, 90, 40, 10),
+#    Collidable(140, 70, 40, 10),
+#    Collidable(0, 0, 5, 150),
+#    Collidable(235, 0, 5, 150)
+#]
 
 playerDamageTriggers = [
     #DamageTrigger(140, 45, 30, 30, 2)
@@ -645,35 +660,56 @@ for e in enemies:
     playerDamageTriggers.append(e.contactDamageTrigger)
     
 background_tile_indexes = [
-    7, 8, 25, 26
+    1, 3, 4, 5, 6, 7, 8, 14, 15, 19, 20, 21, 22, 25, 26, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 121, 122, 123, 124, 125, 137, 138, 139, 140, 141, 145, 146, 147, 148, 149, 156, 157, 158, 161, 163, 164, 172, 173, 174, 177, 178, 179, 180, 181, 184, 185, 187, 192, 193, 194, 200, 208, 209, 210
 ]
 
+tile_size = 8
+levels = [
+    Level(8 * tile_size, 7 * tile_size, 239, 16, 0, 0),
+    Level(75 * tile_size, 26 * 2, 239, 17, 0, 17)
+]
+activeLevelIndex = 0
+activeLevel = levels[activeLevelIndex]
+
+activeLevel.LoadLevel()
+
 def update_camera():
-    
     global cam_x, cam_y
 
     cam_x = 0
     cam_y = 0
+    
+    cam_maxX = activeLevel.sizeX
+    cam_maxY = -1
 
     cam_x = int(player.x -120)
-    cam_y = int(player.y -68)
+    cam_y = int(player.y)
 
     if cam_x < 0:
         cam_x = 0
     if cam_y < 0:
         cam_y = 0
+    
+    if cam_x > cam_maxX * tile_size:
+        cam_x = cam_maxX
+    if cam_y > cam_maxY:
+        cam_y = cam_maxY
 
 music(3)
+
 # --- MAIN LOOP ---
 def TIC():
     cls(0)
     update_camera()
-    map(0, 0, 240, 136, -cam_x, -cam_y)
+    map(activeLevel.mapX, activeLevel.mapY, activeLevel.sizeX, activeLevel.sizeY, -cam_x, -cam_y)
+    print("Camera X: " + str(cam_x), 120, 20, 12)
+    print("Camera Y: " + str(cam_y), 120, 30, 12)
+    print("Camera max X: " + str(activeLevel.sizeX * tile_size), 120, 40, 12)
+    print("Camera max Y: " + str(activeLevel.sizeY), 120, 50, 12)
+    print("Player pos X: " + str(player.x), 120, 60, 12)
+    print("Player pos Y: " + str(player.y), 120, 70, 12)
     
-
-   
-    
-    collidables = TileCollisions([player, enemies], 0, 17)
+    collidables = TileCollisions([player, enemies], activeLevelIndex, 17)
     
     # RESETING GAME
     def reset_game():

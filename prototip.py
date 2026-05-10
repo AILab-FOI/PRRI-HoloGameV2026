@@ -17,6 +17,27 @@ class DamageTrigger(Collidable):
         
         self.damage = damage
         self.owner = owner
+        
+class TeleportTrigger(Collidable):
+    def __init__(self, x, y, w, h, teleportToX, teleportToY, levelIndex, owner = None):
+        Collidable.__init__(self, x, y, w, h)
+
+        self.owner = owner
+        self.levelIndex = levelIndex
+        
+        self.teleportToX = teleportToX
+        self.teleportToY = teleportToY
+        
+    def Teleport(self):
+        global activeLevelIndex
+        activeLevelIndex = self.levelIndex
+        activeLevel = levels[activeLevelIndex]
+        activeLevel.LoadLevel()
+        
+        player.x = self.teleportToX
+        player.y = self.teleportToY
+        player.hsp = 0
+        player.vsp = 0
 
 # --- HELPER ---
 def move_towards(a, b, v):
@@ -29,12 +50,8 @@ def move_towards(a, b, v):
 # --- PLAYER ---
 class Player:
     def __init__(self):
-        #koordinate za pocetak igrice
-        #self.x = 600
-        #self.y = 203
-
-        self.x = 50
-        self.y = 50
+        self.x = 600
+        self.y = 81
     
         self.width = 14
         self.height = 14
@@ -95,6 +112,15 @@ class Player:
                 self.iframeTimer = self.iframeTime
                 if self.health < 1:
                     self.dead = True
+                return True
+        
+        return False
+
+    def check_teleport_triggers(self, teleportTriggers):
+        for t in teleportTriggers:
+            if t.check(self.hitbox):
+                t.Teleport()
+                
                 return True
         
         return False
@@ -227,6 +253,7 @@ class Player:
         self.hitbox.y = self.y
         
         self.check_damage_trigger(damageTriggers)
+        self.check_teleport_triggers(teleportTriggersGlobal)
         
         self.iframeTimer -= 1
         if (self.iframeTimer <= 0):
@@ -544,8 +571,8 @@ class Enemy:
     def destroy(self):
         if self.contactDamageTrigger in playerDamageTriggers:
             playerDamageTriggers.remove(self.contactDamageTrigger)
-        if self in enemies:
-            enemies.remove(self)
+        if self in enemiesGlobal:
+            enemiesGlobal.remove(self)
 
 # --- MISC FUNCTIONS ---
 def TileCollisions(objectList, level, level_height):
@@ -580,22 +607,45 @@ def TileCollisions(objectList, level, level_height):
     return list(collidables.values())
 
 class Level:
-    def __init__(self, x, y, sizeX, sizeY, mapX, mapY):
-        self.startingPosX = x
-        self.startingPosY = y
-        
+    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList):
         self.sizeX = sizeX
         self.sizeY = sizeY
         
         self.mapX = mapX
         self.mapY = mapY
+        
+        self.enemiesList = enemiesList
+        self.teleportTriggersList = teleportTriggersList
     
     def LoadLevel(self):
-        player.x = self.startingPosX
-        player.y = self.startingPosY
+        global activeLevelMapX
+        activeLevelMapX = self.mapX
         
-        player.hsp = 0
-        player.vsp = 0
+        global activeLevelMapY
+        activeLevelMapY = self.mapY
+        
+        global activeLevelSizeX
+        activeLevelSizeX = self.sizeX
+        
+        global activeLevelSizeY
+        activeLevelSizeY = self.sizeY
+        
+        for e in enemiesGlobal:
+            if e in enemiesGlobal:
+                enemiesGlobal.remove(e)
+        
+        for e in self.enemiesList:
+            enemiesGlobal.append(e)
+
+        for e in enemiesGlobal:
+            playerDamageTriggers.append(e.contactDamageTrigger)
+            
+        for t in teleportTriggersGlobal:
+            if t in teleportTriggersGlobal:
+                teleportTriggersGlobal.remove(t)
+            
+        for t in self.teleportTriggersList:
+            teleportTriggersGlobal.append(t)
 
 class SmallEnemy(Enemy):
     def __init__(self, x, y):
@@ -632,6 +682,8 @@ player = Player()
 gun = RangedWeapon(player, 30, 25)
 katana = Katana(player, 60, 25)
 
+tile_size = 8
+
 #colliders = [
 #    Collidable(0, 120, 240, 16),
 #    Collidable(80, 90, 40, 10),
@@ -648,29 +700,49 @@ enemyDamageTriggers = [
 ]
 
 projectiles = []
-
-enemy = Enemy(120, 70)
-small_enemy = SmallEnemy(160, 70)
-
-enemies = []
-enemies.append(enemy)
-enemies.append(small_enemy)
-
-for e in enemies:
-    playerDamageTriggers.append(e.contactDamageTrigger)
     
 background_tile_indexes = [
-    1, 3, 4, 5, 6, 7, 8, 14, 15, 19, 20, 21, 22, 25, 26, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 121, 122, 123, 124, 125, 137, 138, 139, 140, 141, 145, 146, 147, 148, 149, 156, 157, 158, 161, 163, 164, 172, 173, 174, 177, 178, 179, 180, 181, 184, 185, 187, 192, 193, 194, 200, 208, 209, 210
+    1, 3, 4, 5, 6, 7, 8, 14, 15, 16, 19, 20, 21, 22, 25, 26, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 99, 100, 115, 116, 121, 122, 123, 124, 125, 131, 132, 137, 138, 139, 140, 141, 142, 144, 145, 146, 147, 148, 149, 152, 153, 154, 156, 157, 158, 161, 163, 164, 168, 169, 170, 172, 173, 174, 177, 178, 179, 180, 181, 184, 185, 187, 192, 193, 194, 200, 208, 209, 210
 ]
 
-tile_size = 8
+enemiesLevel1 = []
+enemiesLevel1.append(Enemy(19 * tile_size, 12 * tile_size))
+enemiesLevel1.append(SmallEnemy(20 * tile_size, 8 * tile_size))
+
+enemiesLevel2 = []
+enemiesLevel2.append(SmallEnemy(161 * tile_size, 29 * 2))
+
+enemiesLevel3 = []
+
+enemiesGlobal = []
+
+teleportTriggersLevel1 = [
+    TeleportTrigger(4 * tile_size, 16 * 2, 2 * tile_size, 3 * tile_size, 5 * tile_size, 26 * 2, 1)
+]
+
+teleportTriggersLevel2 = [
+    TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2),
+    TeleportTrigger(1 * tile_size, 52 * 2, 3 * tile_size, 2 * tile_size, 8 * tile_size, 5 * tile_size, 0)
+]
+
+teleportTriggersLevel3 = [
+    TeleportTrigger(1 * tile_size, 34 * 2, 4 * tile_size, 4 * tile_size, 174 * tile_size, 34 * 2, 1)
+]
+
+teleportTriggersGlobal = []
+
 levels = [
-    Level(8 * tile_size, 7 * tile_size, 239, 16, 0, 0),
-    Level(75 * tile_size, 26 * 2, 239, 17, 0, 17)
+    Level(8 * tile_size, 7 * tile_size, 239, 16, 0, 0, enemiesLevel1, teleportTriggersLevel1),
+    Level(75 * tile_size, 26 * 2, 239, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2),
+    Level(6 * tile_size, 38 * 2, 239, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3)
 ]
-activeLevelIndex = 0
-activeLevel = levels[activeLevelIndex]
 
+activeLevelIndex = 1
+activeLevelMapX = 0
+activeLevelMapY = 0
+activeLevelSizeX = 0
+activeLevelSizeY = 0
+activeLevel = levels[activeLevelIndex]
 activeLevel.LoadLevel()
 
 def update_camera():
@@ -701,15 +773,9 @@ music(3)
 def TIC():
     cls(0)
     update_camera()
-    map(activeLevel.mapX, activeLevel.mapY, activeLevel.sizeX, activeLevel.sizeY, -cam_x, -cam_y)
-    print("Camera X: " + str(cam_x), 120, 20, 12)
-    print("Camera Y: " + str(cam_y), 120, 30, 12)
-    print("Camera max X: " + str(activeLevel.sizeX * tile_size), 120, 40, 12)
-    print("Camera max Y: " + str(activeLevel.sizeY), 120, 50, 12)
-    print("Player pos X: " + str(player.x), 120, 60, 12)
-    print("Player pos Y: " + str(player.y), 120, 70, 12)
+    map(activeLevelMapX, activeLevelMapY, activeLevel.sizeX, activeLevel.sizeY, -cam_x, -cam_y)
     
-    collidables = TileCollisions([player, enemies], activeLevelIndex, 17)
+    collidables = TileCollisions([player, enemiesGlobal], activeLevelIndex, 17)
     
     # RESETING GAME
     def reset_game():
@@ -737,7 +803,7 @@ def TIC():
     else:
         player.gun = katana
         katana.update()
-    for e in enemies[:]:
+    for e in enemiesGlobal[:]:
         e.update(collidables, enemyDamageTriggers)
 
     player.draw()
@@ -747,15 +813,14 @@ def TIC():
     else:
         katana.draw()
 
-    for e in enemies:   
+    for e in enemiesGlobal:   
         e.draw()
-
-    # debug draw
-    #for c in colliders:
-        #rect(int(c.x), int(c.y), int(c.width), int(c.height), 1)
     
     for pr in projectiles:
         pr.update(collidables)
+        
+    #for t in teleportTriggersGlobal:
+        #rect(int(t.x - cam_x), int(t.y - cam_y), int(t.width), int(t.height), 7)
 
     # death
     if player.dead:
@@ -766,11 +831,7 @@ def TIC():
         if keyp(18):
             reset_game()
         return
-    #for p in playerDamageTriggers:
-        #rect(int(p.x), int(p.y), int(p.width), int(p.height), 7)
 
-    #for c in enemies:
-        #rect(int(c.x), int(c.y), int(c.width), int(c.height), 2)
 # <TILES>
 # 001:8888888888888888888888888888888888888888888888888888888888888888
 # 002:7777777777777777777777777777777777777777777777777777777777777777

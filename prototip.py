@@ -32,12 +32,7 @@ class TeleportTrigger(Collidable):
         global activeLevelIndex
         activeLevelIndex = self.levelIndex
         activeLevel = levels[activeLevelIndex]
-        activeLevel.LoadLevel()
-        
-        player.x = self.teleportToX
-        player.y = self.teleportToY
-        player.hsp = 0
-        player.vsp = 0
+        activeLevel.LoadLevel(self.teleportToX, self.teleportToY)
 
 # --- HELPER ---
 def move_towards(a, b, v):
@@ -90,6 +85,8 @@ class Player:
         
         self.gun = None
         self.hasGun = True
+        
+        self.pausePlayer = False
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -126,7 +123,7 @@ class Player:
         return False
 
     def update(self, colliders, damageTriggers):
-        if (self.dead):
+        if (self.dead or self.pausePlayer):
             return
         
         print("Health: " + str(self.health), 175, 2, 12)
@@ -476,6 +473,9 @@ class Enemy:
         self.iframeMax = 10
 
         self.contactDamageTrigger = DamageTrigger(self.x, self.y, self.width, self.height, 25)
+        
+        self.startingPosX = x
+        self.startingPosY = y
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -606,6 +606,63 @@ def TileCollisions(objectList, level, level_height):
 
     return list(collidables.values())
 
+class ScreenTransition():
+    def __init__(self):
+        self.transitionFrameDelay = 1
+        self.transitionPeakDelay = 15
+        
+        self.transitionTimer = 0
+        
+        self.transitionSlideFrameAmount = 30
+        self.transitionSlideFrameCounter = 0
+        
+        self.isDoingTransition = False
+        self.reverse = False
+        
+        self.firstSlideComplete = False
+        
+        self.i = 0
+    
+    def update(self):
+        if (self.isDoingTransition):
+            self.transitionTimer += 1
+            
+            motion = int(256 / self.transitionSlideFrameAmount)
+            
+            #spr(0, cam_x - (256 - motion * self.i), cam_y, 0, 2 * self.i, 0, 0, 1, 1)
+            #spr(0, cam_x + (256 - 4 * motion * self.i), cam_y, 0, 10 * self.i, 0, 0, 1, 1)
+            
+            if (not self.reverse): rect(cam_x - 128, cam_y, cam_x - (64 - 2 * motion * self.i), 200, 0)
+            else: rect(cam_x - 128, cam_y, cam_x + (2 * motion * self.i), 200, 0)
+            
+            if self.transitionTimer > self.transitionPeakDelay and (self.transitionSlideFrameCounter >= self.transitionSlideFrameAmount) and not self.reverse:
+                self.reverse = True
+                self.transitionTimer = 0
+                self.transitionSlideFrameCounter = 0
+                self.firstSlideComplete = True
+            
+            if (self.transitionTimer > self.transitionFrameDelay) and (self.transitionSlideFrameCounter < self.transitionSlideFrameAmount) and not self.reverse:
+               self.i += 1
+               self.transitionTimer = 0
+               self.transitionSlideFrameCounter += 1
+            elif (self.transitionTimer > self.transitionFrameDelay) and (self.transitionSlideFrameCounter < self.transitionSlideFrameAmount) and self.reverse:
+                self.i -= 1
+                self.transitionTimer = 0
+                self.transitionSlideFrameCounter += 1
+            elif (self.transitionTimer > self.transitionFrameDelay) and (self.transitionSlideFrameCounter >= self.transitionSlideFrameAmount) and self.reverse:
+                #spr(0, cam_x - (256 - motion * self.i), cam_y, 0, 0, 0, 0, 1, 1)
+                self.firstSlideComplete = False
+                self.isDoingTransition = False
+                self.i = 0
+    
+    def doTransition(self):
+        self.i = 0
+        self.transitionTimer = 0
+        self.transitionSlideFrameCounter = 0
+        self.isDoingTransition = True
+        self.reverse = False
+        self.firstSlideComplete = False
+
 class Level:
     def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList):
         self.sizeX = sizeX
@@ -616,36 +673,66 @@ class Level:
         
         self.enemiesList = enemiesList
         self.teleportTriggersList = teleportTriggersList
+        
+        self.isLoadingLevel = False
+        
+        self.playerLocationX = 0
+        self.playerLocationY = 0
     
-    def LoadLevel(self):
-        global activeLevelMapX
-        activeLevelMapX = self.mapX
-        
-        global activeLevelMapY
-        activeLevelMapY = self.mapY
-        
-        global activeLevelSizeX
-        activeLevelSizeX = self.sizeX
-        
-        global activeLevelSizeY
-        activeLevelSizeY = self.sizeY
-        
-        for e in enemiesGlobal:
-            if e in enemiesGlobal:
-                enemiesGlobal.remove(e)
-        
-        for e in self.enemiesList:
-            enemiesGlobal.append(e)
+    def Update(self):
+        if (self.isLoadingLevel):
+            player.pausePlayer = True
+            global screenTransition
+            if ((screenTransition.firstSlideComplete and screenTransition.isDoingTransition) or not screenTransition.isDoingTransition):
+                global activeLevelMapX
+                activeLevelMapX = self.mapX
 
-        for e in enemiesGlobal:
-            playerDamageTriggers.append(e.contactDamageTrigger)
-            
-        for t in teleportTriggersGlobal:
-            if t in teleportTriggersGlobal:
-                teleportTriggersGlobal.remove(t)
-            
-        for t in self.teleportTriggersList:
-            teleportTriggersGlobal.append(t)
+                global activeLevelMapY
+                activeLevelMapY = self.mapY
+
+                global activeLevelSizeX
+                activeLevelSizeX = self.sizeX
+
+                global activeLevelSizeY
+                activeLevelSizeY = self.sizeY
+
+                global player
+                player.pausePlayer = True
+                player.x = self.playerLocationX
+                player.y = self.playerLocationY
+                player.hsp = 0
+                player.vsp = 0
+                
+                for e in enemiesGlobal:
+                    enemiesGlobal.remove(e)
+
+                for t in teleportTriggersGlobal:
+                    if t in teleportTriggersGlobal:
+                        teleportTriggersGlobal.remove(t)
+
+                for t in self.teleportTriggersList:
+                    teleportTriggersGlobal.append(t)
+
+                if (not screenTransition.isDoingTransition): 
+                    player.pausePlayer = False
+
+                    for e in self.enemiesList:
+                        e.x = e.startingPosX
+                        e.y = e.startingPosY
+                        enemiesGlobal.append(e)
+
+                    for e in enemiesGlobal:
+                        playerDamageTriggers.append(e.contactDamageTrigger)
+                    
+                    self.isLoadingLevel = False
+    
+    def LoadLevel(self, teleportX, teleportY):
+        self.playerLocationX = teleportX
+        self.playerLocationY = teleportY
+        
+        global screenTransition
+        screenTransition.doTransition()
+        self.isLoadingLevel = True
 
 class SmallEnemy(Enemy):
     def __init__(self, x, y):
@@ -684,20 +771,8 @@ katana = Katana(player, 60, 25)
 
 tile_size = 8
 
-#colliders = [
-#    Collidable(0, 120, 240, 16),
-#    Collidable(80, 90, 40, 10),
-#    Collidable(140, 70, 40, 10),
-#    Collidable(0, 0, 5, 150),
-#    Collidable(235, 0, 5, 150)
-#]
-
-playerDamageTriggers = [
-    #DamageTrigger(140, 45, 30, 30, 2)
-]
-enemyDamageTriggers = [
-    #DamageTrigger(150, 90, 30, 30, 2)
-]
+playerDamageTriggers = []
+enemyDamageTriggers = []
 
 projectiles = []
     
@@ -706,52 +781,76 @@ background_tile_indexes = [
 ]
 
 enemiesLevel1 = []
-enemiesLevel1.append(Enemy(19 * tile_size, 12 * tile_size))
-enemiesLevel1.append(SmallEnemy(20 * tile_size, 8 * tile_size))
-
 enemiesLevel2 = []
-enemiesLevel2.append(SmallEnemy(161 * tile_size, 29 * 2))
-
 enemiesLevel3 = []
-
 enemiesGlobal = []
 
-teleportTriggersLevel1 = [
-    TeleportTrigger(4 * tile_size, 16 * 2, 2 * tile_size, 3 * tile_size, 5 * tile_size, 26 * 2, 1)
-]
-
-teleportTriggersLevel2 = [
-    TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2),
-    TeleportTrigger(1 * tile_size, 52 * 2, 3 * tile_size, 2 * tile_size, 8 * tile_size, 5 * tile_size, 0)
-]
-
-teleportTriggersLevel3 = [
-    TeleportTrigger(1 * tile_size, 34 * 2, 4 * tile_size, 4 * tile_size, 174 * tile_size, 34 * 2, 1)
-]
-
 teleportTriggersGlobal = []
-
-levels = [
-    Level(8 * tile_size, 7 * tile_size, 239, 16, 0, 0, enemiesLevel1, teleportTriggersLevel1),
-    Level(75 * tile_size, 26 * 2, 239, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2),
-    Level(6 * tile_size, 38 * 2, 239, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3)
-]
 
 activeLevelIndex = 1
 activeLevelMapX = 0
 activeLevelMapY = 0
 activeLevelSizeX = 0
 activeLevelSizeY = 0
-activeLevel = levels[activeLevelIndex]
-activeLevel.LoadLevel()
+
+screenTransition = ScreenTransition()
+
+def game_setup():
+    global player, gun, katana, enemiesGlobal, enemiesLevel1, enemiesLevel2, enemiesLevel3, teleportTriggersGlobal, teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3, levels, activeLevelIndex, activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, activeLevel, screenTransition
+    
+    player = Player()
+    gun = RangedWeapon(player, 30, 25)
+    katana = Katana(player, 60, 25)
+    
+    enemiesLevel1 = []
+    enemiesLevel1.append(Enemy(19 * tile_size, 12 * tile_size))
+    enemiesLevel1.append(SmallEnemy(20 * tile_size, 8 * tile_size))
+
+    enemiesLevel2 = []
+    enemiesLevel2.append(SmallEnemy(161 * tile_size, 29 * 2))
+
+    enemiesLevel3 = []
+
+    enemiesGlobal = []
+
+    teleportTriggersLevel1 = [
+        TeleportTrigger(4 * tile_size, 16 * 2, 2 * tile_size, 3 * tile_size, 5 * tile_size, 26 * 2, 1)
+    ]
+
+    teleportTriggersLevel2 = [
+        TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2),
+        TeleportTrigger(1 * tile_size, 52 * 2, 3 * tile_size, 2 * tile_size, 8 * tile_size, 5 * tile_size, 0)
+    ]
+
+    teleportTriggersLevel3 = [
+        TeleportTrigger(1 * tile_size, 34 * 2, 3 * tile_size, 4 * tile_size, 174 * tile_size, 34 * 2, 1)
+    ]
+
+    teleportTriggersGlobal = []
+
+    levels = [
+        Level(8 * tile_size, 7 * tile_size, 239, 16, 0, 0, enemiesLevel1, teleportTriggersLevel1),
+        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2),
+        Level(6 * tile_size, 38 * 2, 239, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3)
+    ]
+
+    activeLevelIndex = 1
+    activeLevelMapX = 0
+    activeLevelMapY = 0
+    activeLevelSizeX = 0
+    activeLevelSizeY = 0
+    activeLevel = levels[activeLevelIndex]
+    activeLevel.LoadLevel(player.x, player.y)
+    
+    screenTransition = ScreenTransition()
 
 def update_camera():
-    global cam_x, cam_y
+    global cam_x, cam_y, cam_maxX, cam_maxY
 
     cam_x = 0
     cam_y = 0
     
-    cam_maxX = activeLevel.sizeX
+    cam_maxX = (activeLevelSizeX * tile_size) - 240
     cam_maxY = -1
 
     cam_x = int(player.x -120)
@@ -762,11 +861,12 @@ def update_camera():
     if cam_y < 0:
         cam_y = 0
     
-    if cam_x > cam_maxX * tile_size:
+    if cam_x > cam_maxX:
         cam_x = cam_maxX
     if cam_y > cam_maxY:
         cam_y = cam_maxY
 
+game_setup()
 music(3)
 
 # --- MAIN LOOP ---
@@ -776,25 +876,6 @@ def TIC():
     map(activeLevelMapX, activeLevelMapY, activeLevel.sizeX, activeLevel.sizeY, -cam_x, -cam_y)
     
     collidables = TileCollisions([player, enemiesGlobal], activeLevelIndex, 17)
-    
-    # RESETING GAME
-    def reset_game():
-        global player, gun, enemy, enemies, projectiles, playerDamageTriggers, enemyDamageTriggers
-
-        player = Player()
-        gun = RangedWeapon(player, 30, 25)
-        player.gun = gun
-
-        enemy = Enemy(150, 90)
-        enemies = [enemy]
-
-        projectiles = []
-
-        playerDamageTriggers = []
-        enemyDamageTriggers = []
-
-        for e in enemies:
-            playerDamageTriggers.append(e.contactDamageTrigger)
 
     player.update(collidables, playerDamageTriggers)
     if(player.hasGun): 
@@ -819,8 +900,13 @@ def TIC():
     for pr in projectiles:
         pr.update(collidables)
         
+    for l in levels:
+        l.Update()
+        
     #for t in teleportTriggersGlobal:
         #rect(int(t.x - cam_x), int(t.y - cam_y), int(t.width), int(t.height), 7)
+        
+    screenTransition.update()
 
     # death
     if player.dead:
@@ -829,7 +915,7 @@ def TIC():
         music()
 								
         if keyp(18):
-            reset_game()
+            game_setup()
         return
 
 # <TILES>

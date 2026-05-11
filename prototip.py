@@ -126,7 +126,14 @@ class Player:
         if (self.dead or self.pausePlayer):
             return
         
-        print("Health: " + str(self.health), 175, 2, 12)
+        if self.health > 75:
+            rect(10,10,40,6,7)
+        if self.health <= 75 and self.health >= 50:
+            rect(10, 10,30,6, 3)
+        if self.health <= 50 and self.health > 25:
+            rect(10, 10,20,6, 3)
+        if player.health <= 25:
+            rect(10, 10,10, 6, 2)
         
         # LEFT / RIGHT
         self.on_ground = self.check_collision(0, 1, colliders)
@@ -328,7 +335,14 @@ class Katana(Gun):
 
         self.offset_left_x = -8
         self.offset_left_y = 5
-        
+    
+    def draw(self):
+        if (not self.owner.dead):
+            if self.owner.facing == 1:
+                spr(300, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 1, 1)
+            else:
+                spr(300, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 1, 1)
+    
     def attack(self):
         if self.attackTimer > 0:
             return
@@ -562,7 +576,6 @@ class Enemy:
                 spr(260, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
             else:
                 spr(260, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 2, 2)
-    
     def TakeDamage(self, damage, removeInt):
         self.health = self.health - damage
         if self.health < 1:

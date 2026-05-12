@@ -41,7 +41,7 @@ def move_towards(a, b, v):
     else:
         return max(a - v, b)
 
-
+damage_tile_indexes = [144]
 # --- PLAYER ---
 class Player:
     def __init__(self):
@@ -103,10 +103,25 @@ class Player:
         return False
     
     def check_damage_trigger(self, damageTriggers):
+
+        tile_x = int((self.x + self.width / 2) / tile_size)
+        tile_y = int((self.y + self.height) / tile_size)
+
+        tile = mget(tile_x, tile_y + activeLevelIndex * 17)
+        print(str(tile),10,20,12)
+
+        if tile in damage_tile_indexes and self.iframeTimer <= 0:
+            self.health -=50
+            self.iframeTimer = self.iframeTime
+            if self.health <= 0:
+                self.dead = True
+            
+
+
         for d in damageTriggers:
             if d.check(self.hitbox) and self.iframeTimer <= 0:
                 self.health -= d.damage
-                self.iframeTimer = self.iframeTime
+                self.iframeTimer = selfrru.iframeTime
                 if self.health < 1:
                     self.dead = True
                 return True
@@ -154,7 +169,8 @@ class Player:
         
         #if key(5):
             #sfx(2)
-        print("AD move | Space jump | F shoot | E weapon | R restart ")
+            
+       #print("AD fsadfamove | Space jump | F shoot | E weapon | R restart ")
         if key(1):
             self.facing = -1
         elif key(4):

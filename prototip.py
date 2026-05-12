@@ -85,6 +85,9 @@ class Player:
         
         self.gun = None
         self.hasGun = True
+
+        self.hasImmunity = False
+        self.max_jumps = 1
         
         self.pausePlayer = False
 
@@ -124,6 +127,7 @@ class Player:
                 self.iframeTimer = self.iframeTime
                 if self.health < 1:
                     self.dead = True
+                sfx(17, "C#2", 15)
                 return True
         
         return False
@@ -478,6 +482,50 @@ class Projectile:
         
         self.destroyed = True
 
+class PowerUp:
+    def __init__(self, x, y, sprite_id, power_type):
+        self.x = x
+        self.y = y
+
+        self.width = 8
+        self.height = 8
+
+        self.sprite_id = sprite_id
+        self.power_type = power_type
+
+        self.collected = False
+
+    def check_collision_with_player(self):
+        return self.x < player.x + player.width and \
+               self.x + self.width > player.x and \
+               self.y < player.y + player.height and \
+               self.y + self.height > player.y
+
+    def apply_power(self):
+        # TRAJNI powerup
+        if self.power_type == "poision_immunity":
+            player.hasImmunity = True
+
+        elif self.power_type == "katana":
+            player.hasGun = False
+
+        elif self.power_type == "heal":
+            player.health = min(player.health + 25, 100)
+
+        elif self.power_type == "double_jump":
+            player.max_jumps = 2
+
+    def update(self):
+        if self.collected:
+            return
+
+        if self.check_collision_with_player():
+            self.apply_power()
+            self.collected = True
+
+    def draw(self):
+        if not self.collected:
+            spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y))
 
 # --- ENEMIES ---
 class Enemy:
@@ -527,7 +575,7 @@ class Enemy:
                 if self.iframe <= 0:
                     self.health -= d.damage
                     self.iframe = self.iframeMax
-                    sfx(17, "C#2", 15)
+                    sfx(21, "B-3", 12)
                 if self.health < 1:
                     self.dead = True
                     self.destroy()
@@ -693,7 +741,7 @@ class ScreenTransition():
         self.firstSlideComplete = False
 
 class Level:
-    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList):
+    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList):
         self.startX = x
         self.startY = y
 
@@ -705,6 +753,7 @@ class Level:
         
         self.enemiesList = enemiesList
         self.teleportTriggersList = teleportTriggersList
+        self.powerupsList = powerupsList
         
         self.isLoadingLevel = False
         
@@ -734,6 +783,14 @@ class Level:
                 player.y = self.playerLocationY
                 player.hsp = 0
                 player.vsp = 0
+
+                # očisti stare powerupe
+                for p in powerupsGlobal[:]:
+                    powerupsGlobal.remove(p)
+
+                # dodaj powerupe iz ovog levela
+                for p in self.powerupsList:
+                    powerupsGlobal.append(p)
                 
                 for e in enemiesGlobal:
                     enemiesGlobal.remove(e)
@@ -805,6 +862,7 @@ tile_size = 8
 
 playerDamageTriggers = []
 enemyDamageTriggers = []
+powerupsGlobal = []
 
 projectiles = []
     
@@ -833,6 +891,16 @@ def game_setup():
     player = Player()
     gun = RangedWeapon(player, 30, 25)
     katana = Katana(player, 60, 25)
+
+    powerupsLevel1 = [
+        PowerUp(61 * tile_size, 10 * tile_size, 302, "poision_immunity")
+    ]
+
+    powerupsLevel2 = [
+        PowerUp(20 * tile_size, 5 * tile_size, 303, "double_jump")
+    ]
+
+    powerupsLevel3 = []
     
     enemiesLevel1 = []
     enemiesLevel1.append(Enemy(19 * tile_size, 12 * tile_size))
@@ -861,9 +929,9 @@ def game_setup():
     teleportTriggersGlobal = []
 
     levels = [
-        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1),
-        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2),
-        Level(6 * tile_size, 38 * 2, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3)
+        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1),
+        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2),
+        Level(6 * tile_size, 38 * 2, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3)
     ]
 
     activeLevelIndex = 2
@@ -940,6 +1008,12 @@ def TIC():
         
     screenTransition.update()
 
+    for p in powerupsGlobal:
+        p.update()
+
+    for p in powerupsGlobal:
+        p.draw()
+
     # death
     if player.dead:
         rect(0,0,240,136,12)
@@ -957,6 +1031,7 @@ def TIC():
 								
         if keyp(18):
             game_setup()
+            music(3)
         return
 
 # <TILES>
@@ -1104,6 +1179,7 @@ def TIC():
 # 156:8888888888888888888888888888888888888888b8888888bb8888888bb88888
 # 157:bb8888888bbb888d888bbddd8888dddd888ddddd88dddddd8ddddddd8ddddbdd
 # 158:8ddd8888dddddd88dddddd88ddbddd88dbbbdd88ddbddd88dddddd88dddddd88
+# 159:6361166633311166631661161166661166611636661113336116613611666611
 # 160:cccccccbcccccccbcccccccbcccccccbcccccccbcccccccbcccccccbbbbbbbbb
 # 161:5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb
 # 163:5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb
@@ -1118,6 +1194,7 @@ def TIC():
 # 172:88bb8888888bb8888888bb8888888bb8888888bb888888888888888888888888
 # 173:8dddbbbd8ddddbdd888ddddd888888dd88888888888888888888888888888888
 # 174:dddddd88dddddd88dddddd88dddddd88888dd888888888888888888888888888
+# 175:a636a666a333aa666a366aa666aa66aa66aa66aa6aa66a36aa66a333a666a636
 # 176:55555555cccccccccccccccccccccccccccccccccccccccccccccccccccccccb
 # 177:5ccccccb5ccccccc5ccccccc5ccccccc5ccccccc5ccccccc5ccccccc5bbbbbbb
 # 178:55555555ccccccccccccccccccccccccccccccccccccccccccccccccbbbbbbbb
@@ -1132,6 +1209,7 @@ def TIC():
 # 187:6666666666666666667776666666766666667666666676666666777666666666
 # 188:6666666666666626667776266666762662667626626676666266777666666666
 # 189:ccccccccc2ccccccc2dddd2cc2dccd2cc2dccd2cccdddd2ccccccc2ccccccccc
+# 190:66cccc66666cc66666cccc666cc66cc66c4444c66c4444c66cc44cc666cccc66
 # 192:880000088055555005555555000000000bbbbbbb80bbbbbb8800000088888888
 # 193:80000008055555505555555500000000bbbbbbbbbbbbbbbb00000000880dd088
 # 194:80000088055555085555555000000000bbbbbbb0bbbbbb080000008888888888
@@ -1178,6 +1256,8 @@ def TIC():
 # 043:9999999999999999000999993330099935339999323399990333999933399999
 # 044:0000009e000009bd00009bd00009bd00009bd00000fd00000f000000f0000000
 # 045:000000000000a8b00099a8b0589fa8b05899a8b00099a8b00000a8b000000000
+# 046:66cccc66666cc66666cccc666cc66cc66c4444c66c4444c66cc44cc666cccc66
+# 047:030bb000333bbb0003b00bb0bb0000bb000bb00000bbbb300bb00333bb00003b
 # 048:000cc2bb000cccbb000cccbb000cccbb0003cfff0000cf000000ff00000fff00
 # 049:bbcc0000bbcc0000bbcc0000bbcc0000fff3000000fc000000ff00000fff0000
 # 050:aaaae272aaaee777aaaee777aaaae777aaaaa077aaaaaffaaaaaaffaaaaaafff
@@ -1191,6 +1271,9 @@ def TIC():
 # 058:9999922299990222999902229999022299994222999999aa999999aa99999900
 # 059:0222999902c209990222099902220999022239999aa999999aa9999990099999
 # 060:0000002e0000023d000023d000023d000023d00000fd00000f000000f0000000
+# 061:0000009e000009bd00009bd00009bd00009bd00000fd00000f000000f000000d
+# 062:0d0000000dd0000000dd000000dd000000dd00000ddd0000ddd00000dd000000
+# 063:a300a0003330aa0003a00aa000aa00aa00aa00aa0aa003a0aa003330a000a300
 # 064:0000000c000000cc00000ccb0000ccbb000ccbb200ccbb220ccbbb220cbbbbb2
 # 065:c0000000cc000000bcc00000bbcc00002bbcc00022bbcc0022bbbcc02bbbbbc0
 # 067:0000000000000ccc0000cccc0000ccff0000cccc0000cccc0000cccc00000ccc
@@ -1313,6 +1396,7 @@ def TIC():
 # 016:661066206630666066606600660066006600660066006600660066006600660066006600660066006600660066006600660066006600660066006600401000000000
 # 017:0bf00bf00bf00bf01be02bd03bc05bb06ba07b808b70ab50cb40eb20fb004ba04b905b907b708b70ab50cb40eb20fb009b00ab40bb30cb20eb10fb001a1000000000
 # 018:030003000300030003000300030003000300030003000300030003000300030003000300030003000300030003000300030003000300030003000300307000000000
+# 021:0bf00bf00bf01be02be03bd04bc05ba07b809b50cb30fb000bf00be01be01bc02bb04b906b808b60cb40fb100bf00be01bd01bb03ba05b808b60cb30322000000000
 # 032:1800181038303840585068606880789088a0a8b0a8c0b8d0c8e0e8f0f8f0f800080008000800080008000800080008000800080008000800080008004270000f0f03
 # 052:9d1e9d3f9d4f9d509d529d529d529d429d319d309d2f9d1e9d0e9d0e9d0e9d0e9d109d209d219d329d329d529d529d519d509d409d409d3f9d2e9d1e405000000000
 # 053:0c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c000c00000000000000

@@ -41,7 +41,7 @@ def move_towards(a, b, v):
     else:
         return max(a - v, b)
 
-damage_tile_indexes = [144]
+damage_tile_indexes = [144,142,25]
 # --- PLAYER ---
 class Player:
     def __init__(self):
@@ -111,7 +111,7 @@ class Player:
         print(str(tile),10,20,12)
 
         if tile in damage_tile_indexes and self.iframeTimer <= 0:
-            self.health -=50
+            self.health -=100
             self.iframeTimer = self.iframeTime
             if self.health <= 0:
                 self.dead = True
@@ -121,7 +121,7 @@ class Player:
         for d in damageTriggers:
             if d.check(self.hitbox) and self.iframeTimer <= 0:
                 self.health -= d.damage
-                self.iframeTimer = selfrru.iframeTime
+                self.iframeTimer = self.iframeTime
                 if self.health < 1:
                     self.dead = True
                 return True
@@ -942,8 +942,17 @@ def TIC():
 
     # death
     if player.dead:
-        print("GAME OVER", 90, 60, 12)
-        print("Press R to restart", 70, 70, 12)
+        rect(0,0,240,136,12)
+        rectb(50,32,140,65,8)
+        rectb(52,34,136,61,12)
+        line(65,48,175,48,8)
+        print("GAME OVER",81,50,8)
+        line(65,72,175,72,8)
+        
+
+        if time() // 500 % 2 == 0:
+            print("Press R to restart", 66, 78, 8)
+
         music()
 								
         if keyp(18):

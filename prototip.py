@@ -678,6 +678,9 @@ class ScreenTransition():
 
 class Level:
     def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList):
+        self.startX = x
+        self.startY = y
+
         self.sizeX = sizeX
         self.sizeY = sizeY
         
@@ -842,18 +845,18 @@ def game_setup():
     teleportTriggersGlobal = []
 
     levels = [
-        Level(8 * tile_size, 7 * tile_size, 239, 16, 0, 0, enemiesLevel1, teleportTriggersLevel1),
+        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1),
         Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2),
-        Level(6 * tile_size, 38 * 2, 239, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3)
+        Level(6 * tile_size, 38 * 2, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3)
     ]
 
-    activeLevelIndex = 1
+    activeLevelIndex = 2
     activeLevelMapX = 0
     activeLevelMapY = 0
     activeLevelSizeX = 0
     activeLevelSizeY = 0
     activeLevel = levels[activeLevelIndex]
-    activeLevel.LoadLevel(player.x, player.y)
+    activeLevel.LoadLevel(activeLevel.startX, activeLevel.startY)
     
     screenTransition = ScreenTransition()
 

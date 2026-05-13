@@ -80,6 +80,7 @@ class Player:
         self.dash_speed = 4
         
         self.health = 100
+        self.maxHealth = self.health
         self.dead = False
         
         self.iframeTimer = 0
@@ -153,14 +154,19 @@ class Player:
         if (self.dead or self.pausePlayer):
             return
         
+        healthRectColor = 0
+        healthRectWidth = int(40 * ((self.health / self.maxHealth)))
+        
         if self.health > 75:
-            rect(10,10,40,6,7)
+            healthRectColor = 7
         if self.health <= 75 and self.health >= 50:
-            rect(10, 10,30,6, 3)
+            healthRectColor = 3
         if self.health <= 50 and self.health > 25:
-            rect(10, 10,20,6, 3)
+            healthRectColor = 3
         if player.health <= 25:
-            rect(10, 10,10, 6, 2)
+            healthRectColor = 2
+        
+        rect(10, 10, healthRectWidth, 6, healthRectColor)
         
         # LEFT / RIGHT
         self.on_ground = self.check_collision(0, 1, colliders)

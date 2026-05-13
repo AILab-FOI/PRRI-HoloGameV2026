@@ -556,10 +556,9 @@ class Enemy:
         self.startingPosY = y
 
         self.dialogue = [
-            "Hej ti!",
-            "Ne bi trebao biti ovdje.",
-            "Pripremi se za borbu!"
+
         ]
+        self.canTalk=False
 
     def check_collision(self, dx, dy, colliders):
         self.x += dx
@@ -957,6 +956,8 @@ def game_setup():
     testEnemy = Enemy(20 * tile_size, 8 * tile_size)
     testEnemy.dx = 0
 
+    testEnemy.canTalk=True
+
     testEnemy.dialogue = [
         "Test dialogue.",
         "Press R for next sentence.",
@@ -1053,7 +1054,7 @@ def TIC():
 
     # DIALOGUE TEST
     for e in enemiesGlobal:
-        if abs(player.x - e.x) < 30 and abs(player.y - e.y) < 20:
+        if e.canTalk and abs(player.x - e.x) < 30 and abs(player.y - e.y) < 20:
 
             print("PRESS R", int(e.x - cam_x), int(e.y - cam_y - 10), 12)
 

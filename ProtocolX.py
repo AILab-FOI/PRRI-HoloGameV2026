@@ -410,7 +410,7 @@ class RangedWeapon(Gun):
         if self.attackTimer > 0:
             return
         Gun.attack(self)
-        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 4 * sizeMultiplier, 4 * sizeMultiplier, int(self.damage) * damageMultiplier, playerDamageTriggers, 2, int(self.owner.facing))
+        projectile = Projectile(int(self.owner.gun.x), int(self.owner.gun.y), 4 * sizeMultiplier, 4 * sizeMultiplier, int(self.damage) * damageMultiplier, playerDamageTriggers, 2.6, int(self.owner.facing))
         projectiles.append(projectile)
         enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
@@ -496,6 +496,9 @@ class Projectile:
                 self.destroy()
         
         if(self.drawSelf): self.draw()
+        
+        if (abs(self.x - player.x) > 240):
+            self.destroy()
     
     def draw(self):  
         if not self.destroyed:

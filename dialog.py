@@ -527,7 +527,6 @@ class PowerUp:
         if not self.collected:
             spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y))
 
-
 class NPC:
     def __init__(self, x, y, sprite_id, dialogue):
         self.x = x
@@ -771,7 +770,7 @@ class ScreenTransition():
         self.firstSlideComplete = False
 
 class Level:
-    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList):
+    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList, npcsList):
         self.startX = x
         self.startY = y
 
@@ -784,6 +783,7 @@ class Level:
         self.enemiesList = enemiesList
         self.teleportTriggersList = teleportTriggersList
         self.powerupsList = powerupsList
+        self.npcsList=npcsList
         
         self.isLoadingLevel = False
         
@@ -824,6 +824,12 @@ class Level:
                 
                 for e in enemiesGlobal:
                     enemiesGlobal.remove(e)
+
+                for n in npcsGlobal[:]:
+                    npcsGlobal.remove(n)
+
+                for n in self.npcsList:
+                    npcsGlobal.append(n)
 
                 for t in teleportTriggersGlobal:
                     if t in teleportTriggersGlobal:
@@ -973,11 +979,14 @@ def game_setup():
     enemiesLevel1.append(Enemy(19 * tile_size, 12 * tile_size))
     enemiesLevel1.append(SmallEnemy(20 * tile_size, 8 * tile_size))
 
-
     enemiesLevel2 = []
     enemiesLevel2.append(SmallEnemy(161 * tile_size, 29 * 2))
 
     enemiesLevel3 = []
+
+    npcsLevel1 = []
+    npcsLevel2 = []
+    npcsLevel3 = []
 
     # TEST NPC
     testNPC = NPC(
@@ -992,7 +1001,7 @@ def game_setup():
         ]
     )
 
-    npcsGlobal.append(testNPC)
+    npcsLevel3.append(testNPC)
 
     enemiesGlobal = []
 
@@ -1012,9 +1021,9 @@ def game_setup():
     teleportTriggersGlobal = []
 
     levels = [
-        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1),
-        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2),
-        Level(6 * tile_size, 38 * 2, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3)
+        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1, npcsLevel1),
+        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2),
+        Level(6 * tile_size, 38 * 2, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3)
     ]
 
     activeLevelIndex = 2
@@ -1083,15 +1092,6 @@ def TIC():
     for npc in npcsGlobal:
         npc.update()
         npc.draw()
-
-    # DIALOGUE TEST
-    for e in enemiesGlobal:
-        if e.canTalk and abs(player.x - e.x) < 30 and abs(player.y - e.y) < 20:
-
-            print("PRESS R", int(e.x - cam_x), int(e.y - cam_y - 10), 12)
-
-            if keyp(18) and not dialogueManager.active:
-                dialogueManager.start(e.dialogue)
     
     for pr in projectiles:
         pr.update(collidables)

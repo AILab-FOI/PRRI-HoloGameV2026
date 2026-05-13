@@ -41,7 +41,12 @@ def move_towards(a, b, v):
     else:
         return max(a - v, b)
 
-damage_tile_indexes = [144,142,25]
+tile_damage_type = {
+    25: "poison",
+    26: "poison",
+    144: "spike"
+}
+
 # --- PLAYER ---
 class Player:
     def __init__(self):
@@ -113,8 +118,11 @@ class Player:
         tile = mget(tile_x, tile_y + activeLevelIndex * 17)
         print(str(tile),10,20,12)
 
-        if tile in damage_tile_indexes and self.iframeTimer <= 0:
-            self.health -=100
+        if tile in tile_damage_type and self.iframeTimer <= 0:
+            dmg_type = tile_damage_type[tile]
+            if dmg_type == "poison" and self.hasImmunity:
+                return False
+            self.health -= 100
             self.iframeTimer = self.iframeTime
             if self.health <= 0:
                 self.dead = True
@@ -357,12 +365,25 @@ class Katana(Gun):
         self.offset_left_y = 5
     
     def draw(self):
-        if (not self.owner.dead):
+        if self.owner.dead:
+            return
+
+        x = int(self.x - cam_x)
+        y = int(self.y - cam_y)
+
+        # 🗡️ uvijek crtamo osnovnu katanu
+        if self.owner.facing == 1:
+            spr(300, x - 1, y, 0, 1, 0, 0, 1, 1)
+        else:
+            spr(300, x + 3, y, 0, 1, 1, 0, 1, 1)
+
+        # 🔥 SLASH dok traje attack
+        if self.attackTimer > 0:
             if self.owner.facing == 1:
-                spr(300, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 1, 1)
+                spr(301, x + 7, y, 0)
             else:
-                spr(300, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 1, 1)
-    
+                spr(301, x - 5, y, 0, 1, 1)
+
     def attack(self):
         if self.attackTimer > 0:
             return
@@ -490,7 +511,10 @@ class PowerUp:
         self.width = 8
         self.height = 8
 
-        self.sprite_id = sprite_id
+        self.sprites = [sprite_id, sprite_id+1, sprite_id+2] 
+        self.anim_timer = 0
+        self.anim_speed = 20   # 20 frameova (TIC-80 radi na 60 FPS)
+        self.anim_index = 0
         self.power_type = power_type
 
         self.collected = False
@@ -503,7 +527,7 @@ class PowerUp:
 
     def apply_power(self):
         # TRAJNI powerup
-        if self.power_type == "poision_immunity":
+        if self.power_type == "poison_immunity":
             player.hasImmunity = True
 
         elif self.power_type == "katana":
@@ -516,6 +540,14 @@ class PowerUp:
             player.max_jumps = 2
 
     def update(self):
+        self.anim_timer += 1
+
+        if self.anim_timer >= self.anim_speed:
+            self.anim_timer = 0
+            self.anim_index += 1
+            
+            if self.anim_index >= len(self.sprites):
+                self.anim_index = 0
         if self.collected:
             return
 
@@ -525,7 +557,7 @@ class PowerUp:
 
     def draw(self):
         if not self.collected:
-            spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y))
+            spr(self.sprites[self.anim_index], int(self.x - cam_x), int(self.y - cam_y))
 
 # --- ENEMIES ---
 class Enemy:
@@ -867,7 +899,7 @@ powerupsGlobal = []
 projectiles = []
     
 background_tile_indexes = [
-    1, 3, 4, 5, 6, 7, 8, 14, 15, 16, 19, 20, 21, 22, 25, 26, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 99, 100, 115, 116, 121, 122, 123, 124, 125, 131, 132, 137, 138, 139, 140, 141, 142, 144, 145, 146, 147, 148, 149, 152, 153, 154, 156, 157, 158, 161, 163, 164, 168, 169, 170, 172, 173, 174, 177, 178, 179, 180, 181, 184, 185, 187, 192, 193, 194, 200, 208, 209, 210
+    1, 3, 4, 5, 6, 7, 8, 14, 15, 16, 19, 20, 21, 22, 25, 26, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 99, 100, 115, 116, 121, 122, 123, 124, 125, 131, 132, 137, 138, 139, 140, 141, 144, 145, 146, 147, 148, 149, 152, 153, 154, 156, 157, 158, 160, 161, 163, 164, 165, 168, 169, 170, 172, 173, 174, 176, 177, 178, 179, 180, 181, 184, 185, 187, 192, 193, 194, 200, 208, 209, 210
 ]
 
 enemiesLevel1 = []
@@ -893,11 +925,11 @@ def game_setup():
     katana = Katana(player, 60, 25)
 
     powerupsLevel1 = [
-        PowerUp(61 * tile_size, 10 * tile_size, 302, "poision_immunity")
+        PowerUp(61 * tile_size, 10 * tile_size, 325, "poison_immunity")
     ]
 
     powerupsLevel2 = [
-        PowerUp(20 * tile_size, 5 * tile_size, 303, "double_jump")
+        PowerUp(20 * tile_size, 5 * tile_size, 328, "double_jump")
     ]
 
     powerupsLevel3 = []
@@ -1179,7 +1211,6 @@ def TIC():
 # 156:8888888888888888888888888888888888888888b8888888bb8888888bb88888
 # 157:bb8888888bbb888d888bbddd8888dddd888ddddd88dddddd8ddddddd8ddddbdd
 # 158:8ddd8888dddddd88dddddd88ddbddd88dbbbdd88ddbddd88dddddd88dddddd88
-# 159:6361166633311166631661161166661166611636661113336116613611666611
 # 160:cccccccbcccccccbcccccccbcccccccbcccccccbcccccccbcccccccbbbbbbbbb
 # 161:5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb
 # 163:5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb5ccccccb
@@ -1194,7 +1225,6 @@ def TIC():
 # 172:88bb8888888bb8888888bb8888888bb8888888bb888888888888888888888888
 # 173:8dddbbbd8ddddbdd888ddddd888888dd88888888888888888888888888888888
 # 174:dddddd88dddddd88dddddd88dddddd88888dd888888888888888888888888888
-# 175:a636a666a333aa666a366aa666aa66aa66aa66aa6aa66a36aa66a333a666a636
 # 176:55555555cccccccccccccccccccccccccccccccccccccccccccccccccccccccb
 # 177:5ccccccb5ccccccc5ccccccc5ccccccc5ccccccc5ccccccc5ccccccc5bbbbbbb
 # 178:55555555ccccccccccccccccccccccccccccccccccccccccccccccccbbbbbbbb
@@ -1209,7 +1239,6 @@ def TIC():
 # 187:6666666666666666667776666666766666667666666676666666777666666666
 # 188:6666666666666626667776266666762662667626626676666266777666666666
 # 189:ccccccccc2ccccccc2dddd2cc2dccd2cc2dccd2cccdddd2ccccccc2ccccccccc
-# 190:66cccc66666cc66666cccc666cc66cc66c4444c66c4444c66cc44cc666cccc66
 # 192:880000088055555005555555000000000bbbbbbb80bbbbbb8800000088888888
 # 193:80000008055555505555555500000000bbbbbbbbbbbbbbbb00000000880dd088
 # 194:80000088055555085555555000000000bbbbbbb0bbbbbb080000008888888888
@@ -1255,9 +1284,7 @@ def TIC():
 # 042:9999999999999999999990009999033399999303999993339999933099999933
 # 043:9999999999999999000999993330099935339999323399990333999933399999
 # 044:0000009e000009bd00009bd00009bd00009bd00000fd00000f000000f0000000
-# 045:000000000000a8b00099a8b0589fa8b05899a8b00099a8b00000a8b000000000
-# 046:66cccc66666cc66666cccc666cc66cc66c4444c66c4444c66cc44cc666cccc66
-# 047:030bb000333bbb0003b00bb0bb0000bb000bb00000bbbb300bb00333bb00003b
+# 045:0d0000000dd0000000dd000000dd000000dd00000ddd0000ddd00000dd000000
 # 048:000cc2bb000cccbb000cccbb000cccbb0003cfff0000cf000000ff00000fff00
 # 049:bbcc0000bbcc0000bbcc0000bbcc0000fff3000000fc000000ff00000fff0000
 # 050:aaaae272aaaee777aaaee777aaaae777aaaaa077aaaaaffaaaaaaffaaaaaafff
@@ -1271,13 +1298,20 @@ def TIC():
 # 058:9999922299990222999902229999022299994222999999aa999999aa99999900
 # 059:0222999902c209990222099902220999022239999aa999999aa9999990099999
 # 060:0000002e0000023d000023d000023d000023d00000fd00000f000000f0000000
-# 061:0000009e000009bd00009bd00009bd00009bd00000fd00000f000000f000000d
-# 062:0d0000000dd0000000dd000000dd000000dd00000ddd0000ddd00000dd000000
-# 063:a300a0003330aa0003a00aa000aa00aa00aa00aa0aa003a0aa003330a000a300
+# 061:000000000000a8b00099a8b0589fa8b05899a8b00099a8b00000a8b000000000
 # 064:0000000c000000cc00000ccb0000ccbb000ccbb200ccbb220ccbbb220cbbbbb2
 # 065:c0000000cc000000bcc00000bbcc00002bbcc00022bbcc0022bbbcc02bbbbbc0
 # 067:0000000000000ccc0000cccc0000ccff0000cccc0000cccc0000cccc00000ccc
 # 068:00000000ccc00000cccc0000fffc0000fccc0000fccc0000cccc0000cc000000
+# 069:66cccc66666cc66666cccc666cc66cc66c4444c66c4444c66cc44cc666cccc66
+# 070:63cccc66333cc66663cccc666cc66cc66c4444c66c4444c66cc44cc666cccc66
+# 071:63cccc66333cc66663cccc666cc66cc66c4444c66c4444366cc4433366cccc36
+# 072:888bb88888bbbb888bb88bb8bb8888bb888bb88888bbbb888bb88bb8bb8888bb
+# 073:838bb888333bbb8883b88bb8bb8888bb888bb88888bbbb888bb88bb8bb8888bb
+# 074:838bb888333bbb8883b88bb8bb8888bb888bb88888bbbb388bb88333bb88883b
+# 075:a000a000aa00aa000aa00aa000aa00aa00aa00aa0aa00aa0aa00aa00a000a000
+# 076:a300a0003330aa0003a00aa000aa00aa00aa00aa0aa00aa0aa00aa00a000a000
+# 077:a300a0003330aa0003a00aa000aa00aa00aa00aa0aa00a30aa00a333a000a030
 # 080:0cbbbbbb0cbbbbcc0cccccc000c0000000000000000000000000000000000000
 # 081:bbbbbbc0ccbbbbc00cccccc000000c0000000000000000000000000000000000
 # 083:0000dcfc0000dccf0000dcfc0000dccf0000dcfc0000ff000000cc000000ccc0

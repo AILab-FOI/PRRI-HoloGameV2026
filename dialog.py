@@ -527,6 +527,30 @@ class PowerUp:
         if not self.collected:
             spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y))
 
+
+class NPC:
+    def __init__(self, x, y, sprite_id, dialogue):
+        self.x = x
+        self.y = y
+        self.width = 16
+        self.height = 16
+        self.sprite_id = sprite_id
+        self.dialogue = dialogue
+        self.canTalk = True
+
+    def is_player_near(self):
+        return abs(player.x - self.x) < 30 and abs(player.y - self.y) < 20
+
+    def update(self):
+        if self.is_player_near():
+            print("PRESS R", int(self.x - cam_x), int(self.y - cam_y - 10), 12)
+
+            if keyp(18) and not dialogueManager.active:
+                dialogueManager.start(self.dialogue)
+
+    def draw(self):
+        spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
+
 # --- ENEMIES ---
 class Enemy:
     def __init__(self, x, y):
@@ -539,6 +563,7 @@ class Enemy:
         self.dx = -1
         self.sprite_left = 258
         self.sprite_right = 258
+        self.sprite_id=260
 
         self.hsp = 0
         self.vsp = 0
@@ -901,6 +926,7 @@ tile_size = 8
 playerDamageTriggers = []
 enemyDamageTriggers = []
 powerupsGlobal = []
+npcsGlobal = []
 
 projectiles = []
     
@@ -926,9 +952,10 @@ screenTransition = ScreenTransition()
 dialogueManager = DialogueManager()
 
 def game_setup():
-    global player, gun, katana, enemiesGlobal, enemiesLevel1, enemiesLevel2, enemiesLevel3, teleportTriggersGlobal, teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3, levels, activeLevelIndex, activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, activeLevel, screenTransition
+    global player, gun, katana, enemiesGlobal, enemiesLevel1, enemiesLevel2, enemiesLevel3, teleportTriggersGlobal, teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3, levels, activeLevelIndex, activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, activeLevel, screenTransition, npcsGlobal
     
     player = Player()
+    npcsGlobal = []
     gun = RangedWeapon(player, 30, 25)
     katana = Katana(player, 60, 25)
 
@@ -952,19 +979,20 @@ def game_setup():
 
     enemiesLevel3 = []
 
-    # TEST NPC pokraj spawn-a na trenutnom levelu
-    testEnemy = Enemy(20 * tile_size, 8 * tile_size)
-    testEnemy.dx = 0
+    # TEST NPC
+    testNPC = NPC(
+        19 * tile_size,
+        10 * tile_size,
+        298,
+        [
+            "",
+            "Test dialogue.",
+            "Press R for next sentence.",
+            "Press R to close."
+        ]
+    )
 
-    testEnemy.canTalk=True
-
-    testEnemy.dialogue = [
-        "Test dialogue.",
-        "Press R for next sentence.",
-        "Press R to close."
-    ]
-
-    enemiesLevel3.append(testEnemy)
+    npcsGlobal.append(testNPC)
 
     enemiesGlobal = []
 
@@ -1051,6 +1079,10 @@ def TIC():
 
     for e in enemiesGlobal:   
         e.draw()
+
+    for npc in npcsGlobal:
+        npc.update()
+        npc.draw()
 
     # DIALOGUE TEST
     for e in enemiesGlobal:

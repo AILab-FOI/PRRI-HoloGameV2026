@@ -117,7 +117,7 @@ class Player:
         tile_y = int((self.y + self.height) / tile_size)
 
         tile = mget(tile_x, tile_y + activeLevelIndex * 17)
-        print(str(tile),10,20,12)
+        #print(str(tile),10,20,12)
 
         if tile in tile_damage_type and self.iframeTimer <= 0:
             dmg_type = tile_damage_type[tile]
@@ -737,6 +737,7 @@ class ScreenTransition():
         self.firstSlideComplete = False
         
         self.i = 0
+        self.xPos = 0
     
     def update(self):
         if (self.isDoingTransition):
@@ -747,8 +748,13 @@ class ScreenTransition():
             #spr(0, cam_x - (256 - motion * self.i), cam_y, 0, 2 * self.i, 0, 0, 1, 1)
             #spr(0, cam_x + (256 - 4 * motion * self.i), cam_y, 0, 10 * self.i, 0, 0, 1, 1)
             
-            if (not self.reverse): rect(cam_x - 128, cam_y, cam_x - (64 - 2 * motion * self.i), 200, 0)
-            else: rect(cam_x - 128, cam_y, cam_x + (2 * motion * self.i), 200, 0)
+            self.xPos = cam_x - 128
+            self.xPos = self.clampPosition(self.xPos, 0, 0)
+            
+            if (not self.reverse): 
+                rect(self.xPos, cam_y, self.xPos - (64 - 2 * motion * self.i), 200, 0)
+            else:
+                rect(self.xPos, cam_y, ((2 * motion * self.i)), 200, 0)
             
             if self.transitionTimer > self.transitionPeakDelay and (self.transitionSlideFrameCounter >= self.transitionSlideFrameAmount) and not self.reverse:
                 self.reverse = True
@@ -757,9 +763,9 @@ class ScreenTransition():
                 self.firstSlideComplete = True
             
             if (self.transitionTimer > self.transitionFrameDelay) and (self.transitionSlideFrameCounter < self.transitionSlideFrameAmount) and not self.reverse:
-               self.i += 1
-               self.transitionTimer = 0
-               self.transitionSlideFrameCounter += 1
+                self.i += 1
+                self.transitionTimer = 0
+                self.transitionSlideFrameCounter += 1
             elif (self.transitionTimer > self.transitionFrameDelay) and (self.transitionSlideFrameCounter < self.transitionSlideFrameAmount) and self.reverse:
                 self.i -= 1
                 self.transitionTimer = 0
@@ -777,6 +783,14 @@ class ScreenTransition():
         self.isDoingTransition = True
         self.reverse = False
         self.firstSlideComplete = False
+        
+    def clampPosition(self, n, min, max):
+        if n < min:
+            return min
+        elif n > max:
+            return max
+        else:
+            return n
 
 class Level:
     def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList):
@@ -1057,9 +1071,9 @@ def TIC():
         rect(0,0,240,136,12)
         rectb(50,32,140,65,8)
         rectb(52,34,136,61,12)
-        line(65,48,175,48,8)
-        print("GAME OVER",81,50,8)
-        line(65,72,175,72,8)
+        line(63,48,173,48,8)
+        print("GAME OVER",90,57,8)
+        line(63,72,173,72,8)
         
 
         if time() // 500 % 2 == 0:

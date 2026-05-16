@@ -1095,8 +1095,7 @@ music(3)
 def TIC():
     cls(0)
     update_camera()
-
-    map(activeLevelMapX, activeLevelMapY, activeLevel.sizeX, activeLevel.sizeY, -cam_x, -cam_y)
+    map(activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, -cam_x, -cam_y)
     print("x: " + str(int(player.x)), 2, 2, 12)
     print("y: " + str(int(player.y)), 2, 10, 12)
     collidables = TileCollisions([player, enemiesGlobal], activeLevelIndex, 17)

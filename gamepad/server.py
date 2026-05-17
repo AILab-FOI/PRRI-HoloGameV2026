@@ -13,7 +13,7 @@ import pyautogui
 
 from config import GAMES
 
-GAME = GAMES['hologamev']  # change this when multiple games are available
+GAME = GAMES['ProtocolX']  # change this when multiple games are available
 ADDR_OUT = '0.0.0.0'
 PORT = 5000
 
@@ -103,7 +103,7 @@ def ctrl():
         socketio.emit('stop')
 
     # Resolve TIC-80 binary
-    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
+    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     candidates = []
     if sys.platform.startswith('win'):
         candidates = ['tic80.exe', 'tic80']
@@ -122,7 +122,7 @@ def ctrl():
 
     # Build command
     # If using Windows .exe on non-Windows, you can prefix with 'wine'
-    command = [tic80_exe, '--fs', '.', '--cmd', 'load hologamev.py & run']
+    command = [tic80_exe, '--fs', '.', '--cmd', 'load ProtocolX.py & run']
     if tic80_exe.endswith('.exe') and not sys.platform.startswith('win'):
         # run under wine
         command.insert(0, 'wine')
@@ -131,7 +131,7 @@ def ctrl():
     popenAndCall(game_exit_callback, *command, cwd=src_dir)
     GAME_STARTED = True
 
-    return render_template('ctrl.html', game='hologamev')
+    return render_template('ctrl.html', game='ProtocolX')
 
 
 @app.route('/start')

@@ -969,11 +969,7 @@ enemiesGlobal = []
 
 teleportTriggersGlobal = []
 
-activeLevelIndex = 2
-activeLevelMapX = 0
-activeLevelMapY = 0
-activeLevelSizeX = 0
-activeLevelSizeY = 0
+
 
 screenTransition = ScreenTransition()
 
@@ -1048,7 +1044,6 @@ def game_setup():
 
     teleportTriggersLevel5 = [
         TeleportTrigger(14, 65,  tile_size, tile_size, 1050, 105, 3)
-        
     ]
 
     teleportTriggersLevel6 = [
@@ -1067,7 +1062,7 @@ def game_setup():
 
     ]
 
-    activeLevelIndex = 5
+    activeLevelIndex = 1
     activeLevelMapX = 0
     activeLevelMapY = 0
     activeLevelSizeX = 0

@@ -104,7 +104,7 @@ def ctrl():
 
     # Resolve TIC-80 binary
     src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    candidates = []
+    """candidates = []
     if sys.platform.startswith('win'):
         candidates = ['tic80.exe', 'tic80']
     else:
@@ -118,7 +118,24 @@ def ctrl():
     else:
         abort(500, description=f"TIC-80 binary not found or not executable in {src_dir}")
 
-    print("Launching TIC-80 from:", tic80_exe)
+    print("Launching TIC-80 from:", tic80_exe)"""
+
+    print("Launching TIC-80 via Flatpak")
+
+    command = [
+        'flatpak',
+        'run',
+        'com.tic80.TIC_80',
+        '--fs',
+        '.',
+        '--cmd',
+        'load ProtocolX.py & run'
+    ]
+
+    popenAndCall(game_exit_callback, *command, cwd=src_dir)
+    GAME_STARTED = True
+
+    return render_template('ctrl.html', game='ProtocolX')
 
     # Build command
     # If using Windows .exe on non-Windows, you can prefix with 'wine'

@@ -565,28 +565,6 @@ class PowerUp:
     def draw(self):
         if not self.collected:
             spr(self.sprites[self.anim_index], int(self.x - cam_x), int(self.y - cam_y))
-class NPC:
-    def __init__(self, x, y, sprite_id, dialogue):
-        self.x = x
-        self.y = y
-        self.width = 16
-        self.height = 16
-        self.sprite_id = sprite_id
-        self.dialogue = dialogue
-        self.canTalk = True
-
-    def is_player_near(self):
-        return abs(player.x - self.x) < 30 and abs(player.y - self.y) < 20
-
-    def update(self):
-        if self.is_player_near():
-            print("PRESS R", int(self.x - cam_x), int(self.y - cam_y - 10), 0)
-
-            if keyp(18) and not dialogueManager.active:
-                dialogueManager.start(self.dialogue)
-
-    def draw(self):
-        spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)           
 
 # --- ENEMIES ---
 class Enemy:
@@ -616,10 +594,6 @@ class Enemy:
         self.startingPosX = x
         self.startingPosY = y
 
-        self.dialogue = [
-
-        ]
-        self.canTalk=False
     def check_collision(self, dx, dy, colliders):
         self.x += dx
         self.y += dy
@@ -822,7 +796,7 @@ class ScreenTransition():
             return n
 
 class Level:
-    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList, npcsList):
+    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList):
         self.startX = x
         self.startY = y
 
@@ -835,7 +809,6 @@ class Level:
         self.enemiesList = enemiesList
         self.teleportTriggersList = teleportTriggersList
         self.powerupsList = powerupsList
-        self.npcsList=npcsList
         
         self.isLoadingLevel = False
         
@@ -873,11 +846,6 @@ class Level:
                 # dodaj powerupe iz ovog levela
                 for p in self.powerupsList:
                     powerupsGlobal.append(p)
-                for n in npcsGlobal[:]:
-                    npcsGlobal.remove(n)
-
-                for n in self.npcsList:
-                    npcsGlobal.append(n)
                 
                 for e in enemiesGlobal:
                     #e.dead = False
@@ -939,40 +907,6 @@ class SmallEnemy(Enemy):
                 flip = 1
 
             spr(267, int(self.x - cam_x), int(self.y - cam_y), 0, 1, flip, 0, 2, 2)
-# --- DIALOGUES ---
-class DialogueManager:
-    def __init__(self):
-        self.active = False
-        self.lines = []
-        self.index = 0
-
-    def start(self, lines):
-        self.active = True
-        self.lines = lines
-        self.index = 0
-
-        player.pausePlayer = True
-
-    def update(self):
-        if not self.active:
-            return
-
-        if keyp(18):
-            self.index += 1
-
-            if self.index >= len(self.lines):
-                self.active = False
-                player.pausePlayer = False
-
-    def draw(self):
-        if not self.active:
-            return
-
-        rect(10, 92, 220, 34, 0)
-        rectb(10, 92, 220, 34, 12)
-
-        print(self.lines[self.index], 18, 102, 12)
-        print("PRESS R", 170, 116, 10)
 
 class WaterDropper():
     def __init__(self, x, y, water_tile_id, stopping_tile_id, delay, restartDelay = 0, startingDelay = 0):
@@ -1021,7 +955,6 @@ tile_size = 8
 playerDamageTriggers = []
 enemyDamageTriggers = []
 powerupsGlobal = []
-npcsGlobal = []
 
 projectiles = []
     
@@ -1036,14 +969,10 @@ enemiesGlobal = []
 
 teleportTriggersGlobal = []
 
-activeLevelIndex = 2
-activeLevelMapX = 0
-activeLevelMapY = 0
-activeLevelSizeX = 0
-activeLevelSizeY = 0
+
 
 screenTransition = ScreenTransition()
-dialogueManager = DialogueManager()
+
 waterDroppers = [
         WaterDropper(23, 5, 8, 25, 5, 0, 0),
         WaterDropper(24, 5, 8, 26, 5, 0, 8),
@@ -1065,10 +994,9 @@ waterDroppers = [
     ]
 
 def game_setup():
-    global player, gun, katana, enemiesGlobal, enemiesLevel1, enemiesLevel2, enemiesLevel3, teleportTriggersGlobal, teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3, levels, activeLevelIndex, activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, activeLevel, screenTransition, npcsGlobal, waterDroppers
+    global player, gun, katana, enemiesGlobal, enemiesLevel1, enemiesLevel2, enemiesLevel3, teleportTriggersGlobal, teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3, levels, activeLevelIndex, activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, activeLevel, screenTransition, waterDroppers
     
     player = Player()
-    npcsGlobal = []
     gun = RangedWeapon(player, 30, 25)
     katana = Katana(player, 60, 25)
 
@@ -1090,27 +1018,7 @@ def game_setup():
     enemiesLevel2.append(SmallEnemy(161 * tile_size, 29 * 2))
 
     enemiesLevel3 = []
-    npcsLevel1 = []
-    npcsLevel2 = []
-    npcsLevel3 = []
-    npcsLevel4 = []
-    npcsLevel5 = []
-    npcsLevel6 = []
 
-    # TEST NPC
-    testNPC = NPC(
-        10 * tile_size,
-        13 * tile_size,
-        288,
-        [
-            "",
-            "Test dialogue.",
-            "Press R for next sentence.",
-            "Press R to close."
-        ]
-    )
-
-    npcsLevel6.append(testNPC)
     enemiesGlobal = []
 
     
@@ -1136,7 +1044,6 @@ def game_setup():
 
     teleportTriggersLevel5 = [
         TeleportTrigger(14, 65,  tile_size, tile_size, 1050, 105, 3)
-        
     ]
 
     teleportTriggersLevel6 = [
@@ -1146,16 +1053,16 @@ def game_setup():
     teleportTriggersGlobal = []
 
     levels = [
-        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1,powerupsLevel1, npcsLevel1),#kono
-        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2), #nicabo
-        Level(1600,70,240,17, 0, 34, enemiesLevel3, teleportTriggersLevel3,powerupsLevel3, npcsLevel3),#grad
-        Level(8, 90, 240, 17, 0, 51, enemiesLevel3, teleportTriggersLevel4,[], npcsLevel4), #lab
-        Level(8, 90, 240, 17, 0, 68, enemiesLevel3, teleportTriggersLevel5,[], npcsLevel5), #parkour 5 level index = 4
-        Level(8, 90, 60, 17, 0, 85, enemiesLevel3, teleportTriggersLevel6,[],npcsLevel6) #control 6 level index = 5
+        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1,powerupsLevel1),#kono
+        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2), #nicabo
+        Level(1600,70,240,17, 0, 34, enemiesLevel3, teleportTriggersLevel3,powerupsLevel3),#grad
+        Level(8, 90, 240, 17, 0, 51, enemiesLevel3, teleportTriggersLevel4,[]), #lab
+        Level(8, 90, 240, 17, 0, 68, enemiesLevel3, teleportTriggersLevel5,[]), #parkour 5 level index = 4
+        Level(8, 90, 60, 17, 0, 85, enemiesLevel3, teleportTriggersLevel6,[]) #control 6 level index = 5
 
     ]
 
-    activeLevelIndex = 5
+    activeLevelIndex = 1
     activeLevelMapX = 0
     activeLevelMapY = 0
     activeLevelSizeX = 0
@@ -1218,9 +1125,7 @@ def TIC():
 
     for e in enemiesGlobal:   
         e.draw()
-    for npc in npcsGlobal:
-        npc.update()
-        npc.draw()
+    
     for pr in projectiles:
         pr.update(collidables)
         
@@ -1257,9 +1162,7 @@ def TIC():
             game_setup()
             music(3)
         return
-    dialogueManager.update()
-    dialogueManager.draw()
-    
+
 # <TILES>
 # 001:8888888888888888888888888888888888888888888888888888888888888888
 # 002:7777777777777777777777777777777777777777777777777777777777777777

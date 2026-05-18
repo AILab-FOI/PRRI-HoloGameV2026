@@ -25,10 +25,10 @@ abe = {
     ]
 }
 
-hologamev = {
+ProtocolX = {
     "title": "HoloGame V",
     "players": 1,
-    "executable": "\"C:\\Users\\Matej\\Desktop\\PRRI-HoloGameV2025\\PRRI-HoloGameV2025\\src\\tic80.exe\"",
+    "executable": "./tic80",
     'toggles': ['UP', 'DOWN', 'LEFT', 'RIGHT'],
     'taps': ['SELECT', 'START', 'A', 'B'],
     "description": """A TIC-80 game.""",
@@ -48,4 +48,4 @@ hologamev = {
     ]
 }
 
-GAMES = { "abe": abe, "hologamev": hologamev }
+GAMES = { "abe": abe, "ProtocolX": ProtocolX }

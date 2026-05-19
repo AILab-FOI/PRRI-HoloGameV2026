@@ -471,6 +471,15 @@ class Projectile:
             return False
         
         def checkColliders():
+            tile_x = int((self.x + self.contactDamageTrigger.width / 2) / tile_size)
+            tile_y = int((self.y + self.contactDamageTrigger.height) / tile_size)
+
+            tile = mget(tile_x, tile_y + activeLevelIndex * 17)
+            
+            if tile not in background_tile_indexes:
+                self.destroy()
+                return True
+        
             for c in colliders:
                 if c.check(self):
                     self.destroy()
@@ -529,6 +538,7 @@ class Projectile:
         if self.contactDamageTrigger in enemyDamageTriggers:
             enemyDamageTriggers.remove(self.contactDamageTrigger)
         
+        self.drawSelf = False
         self.destroyed = True
 
 class PowerUp:

@@ -458,8 +458,8 @@ class Projectile:
         self.y += dy
         
         def checkBreakableTiles():
-            tile_x = int((self.x + self.contactDamageTrigger.width / 2) / tile_size)
-            tile_y = int((self.y + self.contactDamageTrigger.height) / tile_size)
+            tile_x = int((self.x + self.width / 2) / tile_size)
+            tile_y = int((self.y + self.height) / tile_size)
 
             tile = mget(tile_x, tile_y + activeLevelIndex * 17)
             
@@ -471,14 +471,13 @@ class Projectile:
             return False
         
         def checkColliders():
-            tile_x = int((self.x + self.contactDamageTrigger.width / 2) / tile_size)
-            tile_y = int((self.y + self.contactDamageTrigger.height) / tile_size)
+            tile_x = int((self.x + self.width / 2) / tile_size)
+            tile_y = int((self.y + self.height) / tile_size)
 
             tile = mget(tile_x, tile_y + activeLevelIndex * 17)
             
             if tile not in background_tile_indexes:
                 self.destroy()
-                return True
         
             for c in colliders:
                 if c.check(self):
@@ -995,7 +994,7 @@ powerupsGlobal = []
 projectiles = []
     
 background_tile_indexes = [
-    1, 3, 4, 5, 6, 7, 8, 14, 15, 16, 19, 20, 21, 22, 25, 26, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 99, 100, 104, 105, 115, 116, 117, 118, 121, 122, 123, 124, 125, 131, 132, 133, 134, 137, 138, 139, 140, 141, 142, 144, 145, 146, 147, 148, 149, 152, 153, 154, 156, 157, 158, 160, 161, 163, 164, 165, 168, 169, 170, 172, 173, 174, 176, 177, 178, 179, 180, 181, 184, 185, 187, 188, 192, 193, 194, 200, 208, 209, 210
+    1, 3, 4, 5, 6, 7, 8, 14, 15, 16, 19, 20, 21, 22, 25, 26, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 99, 100, 104, 105, 115, 116, 117, 118, 121, 122, 123, 124, 125, 131, 132, 133, 134, 137, 138, 139, 140, 141, 142, 144, 145, 146, 147, 148, 149, 152, 153, 154, 155, 156, 157, 158, 160, 161, 163, 164, 165, 168, 169, 170, 171, 172, 173, 174, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 187, 188, 192, 193, 194, 198, 199, 200, 201, 208, 209, 210
 ]
 
 breakable_tile_indexes = {
@@ -1099,7 +1098,7 @@ def game_setup():
 
     ]
 
-    activeLevelIndex = 0
+    activeLevelIndex = 1
     activeLevelMapX = 0
     activeLevelMapY = 0
     activeLevelSizeX = 0

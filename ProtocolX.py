@@ -403,17 +403,23 @@ class Katana(Gun):
         y = int(self.y - cam_y)
 
         # 🗡️ uvijek crtamo osnovnu katanu
-        if self.owner.facing == 1:
-            spr(344, x - 1, y, 0, 1, 0, 0, 1, 1)
+        # 🗡️ normalna ili spuštena katana
+        if self.attackTimer > 0:
+            katana_sprite = 345
         else:
-            spr(344, x + 3, y, 0, 1, 1, 0, 1, 1)
+            katana_sprite = 344
+
+        if self.owner.facing == 1:
+            spr(katana_sprite, x - 1, y, 0, 1, 0, 0, 1, 1)
+        else:
+            spr(katana_sprite, x + 3, y, 0, 1, 1, 0, 1, 1)
 
         # 🔥 SLASH dok traje attack
         if self.attackTimer > 0:
             if self.owner.facing == 1:
-                spr(345, x + 7, y, 0)
+                spr(346, x + 7, y, 0)
             else:
-                spr(345, x - 5, y, 0, 1, 1)
+                spr(346, x - 5, y, 0, 1, 1)
 
     def attack(self):
         if self.attackTimer > 0:
@@ -664,7 +670,8 @@ class Enemy:
         self.width = 16
         self.height = 16
         self.dx = -1
-        self.sprite = 260
+        self.sprite_left = 258
+        self.sprite_right = 258
 
         self.hsp = 0
         self.vsp = 0
@@ -765,9 +772,9 @@ class Enemy:
     def draw(self):
         if not self.dead:
             if self.facing == 1:
-                spr(self.sprite, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
+                spr(260, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
             else:
-                spr(self.sprite, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 2, 2)
+                spr(260, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 2, 2)
     def TakeDamage(self, damage, removeInt):
         self.health = self.health - damage
         if self.health < 1:
@@ -971,7 +978,7 @@ class Level:
         global screenTransition
         screenTransition.doTransition()
         self.isLoadingLevel = True
-        
+
 class SmallEnemy(Enemy):
     def __init__(self, x, y):
         super().__init__(x, y)
@@ -980,7 +987,6 @@ class SmallEnemy(Enemy):
         self.width = 12
         self.height = 12
         self.dx = -1.5
-        self.sprite = 267
 
         self.iframe = 0
         self.iframeMax = 8
@@ -994,51 +1000,14 @@ class SmallEnemy(Enemy):
             10
         )
 
-class StaticEnemy(Enemy):
-    def __init__(self, x, y):
-        Enemy.__init__(self, x, y)
+    def draw(self):
+        if not self.dead:
+            flip = 0
+            if self.facing == -1:
+                flip = 1
 
-        self.dx = 0
-        self.hsp = 0
+            spr(267, int(self.x - cam_x), int(self.y - cam_y), 0, 1, flip, 0, 2, 2)
 
-        self.sprite = 262
-
-        self.contactDamageTrigger.damage = 15
-
-    def update(self, colliders, damageTriggers):
-        if self.dead:
-            return
-
-        # GRAVITY
-        if not self.check_collision(0, self.vsp + 1, colliders):
-            self.vsp += 0.25
-        else:
-            self.vsp = 0
-
-        # COLLISION Y
-        if self.check_collision(0, self.vsp, colliders):
-            self.vsp = 0
-
-        # MOVE ONLY VERTICALLY
-        self.y += self.vsp
-
-        if self.attackTimer > 0:
-            self.attackTimer -= 1
-
-        if self.iframe > 0:
-            self.iframe -= 1
-
-        self.check_damage_trigger(damageTriggers)
-
-        self.contactDamageTrigger.x = self.x
-        self.contactDamageTrigger.y = self.y
-
-class BigEnemy(Enemy):
-    def __init__(self, x, y):
-        Enemy.__init__(self, x, y)
-
-        self.health = 200
-        self.sprite = 269
 class WaterDropper():
     def __init__(self, x, y, water_tile_id, stopping_tile_id, delay, restartDelay = 0, startingDelay = 0):
         self.x = x
@@ -1213,30 +1182,16 @@ def game_setup():
         
     )
     npcsLevel2.append(testNPC)
-    Level1Y = 0
-    Level2Y = 17
-    Level3Y = 34
-    Level4Y = 51
-    Level5Y = 68
-    Level6Y = 85
     
     enemiesLevel1 = []
-    enemiesLevel1.append(Enemy(19 * tile_size, (12 - Level1Y) * tile_size))
-    enemiesLevel1.append(SmallEnemy(20 * tile_size, (8 - Level1Y) * tile_size))
+    enemiesLevel1.append(Enemy(19 * tile_size, 12 * tile_size))
+    enemiesLevel1.append(SmallEnemy(20 * tile_size, 8 * tile_size))
 
     enemiesLevel2 = []
-    enemiesLevel2.append(SmallEnemy(161 * tile_size, (29 - Level2Y) * tile_size))
+    enemiesLevel2.append(SmallEnemy(161 * tile_size, 29 * 2))
 
     enemiesLevel3 = []
-    enemiesLevel3.append(Enemy(208 * tile_size, (47 - Level3Y) * tile_size))
-    enemiesLevel3.append(StaticEnemy(58 * tile_size, (37 - Level3Y) * tile_size))
-    enemiesLevel3.append(StaticEnemy(67 * tile_size, (37 - Level3Y) * tile_size))
 
-    enemiesLevel4 = []
-    enemiesLevel4.append(BigEnemy(30 *tile_size, (63 - Level4Y) * tile_size))
-    enemiesLevel4.append(BigEnemy(55 *tile_size, (63 - Level4Y) * tile_size))
-    enemiesLevel4.append(BigEnemy(100 *tile_size, (63 - Level4Y) * tile_size))
-    enemiesLevel4.append(BigEnemy(150 *tile_size, (63 - Level4Y) * tile_size))
     enemiesGlobal = []
 
     teleportTriggersLevel1 = [
@@ -1653,7 +1608,8 @@ def TIC():
 # 086:8838889e833389bd88389bd88889bd88889bd88888fd83888f883338f8888388
 # 087:8888889e888889bd88889bd88889bd88889bd88888fd88888f888888f8888888
 # 088:0000009e000009bd00009bd00009bd00009bd00000fd00000f000000f0000000
-# 089:0d0000000dd0000000dd000000dd000000dd00000ddd0000ddd00000dd000000
+# 089:f00000000f00000000f9000000db9000000db9000000db9000000db9000000de
+# 090:0d0000000dd0000000dd000000dd000000dd00000ddd0000ddd00000dd000000
 # </SPRITES>
 
 # <MAP>

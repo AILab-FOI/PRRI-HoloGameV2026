@@ -9,7 +9,7 @@ t=0
 function TIC()
  if bt<=0 then
   if bass[bi]>=0 then
-   sfx(0,bass[bi]+24,30,0,12)
+   sfx(0,bass[bi]+24,30,0,10)
   end
   bt=18 bi=bi%#bass+1
  end

@@ -1206,21 +1206,59 @@ def game_setup():
     npcsLevel2 = []
     npcsLevel3 = []
 
-        # TEST NPC
-    testNPC = NPC(
-        300,
-        81,
-        298,
-        [
-            "",
-            "Test dialogue.",
-            "Press R for next sentence.",
-            "Press R to close."
-        ]
+        # NPC dijalozi
+	npc_bolnica = NPC(
+    300,
+    81,
+    298,
+    [
+        "Hej, ti si budan!",
+        "Sustav te vec trazi.",
+        "Ne zadrzavaj se ovdje.",
+        "Idi prema izlazu."
+    ]
+)
 
-        
-    )
-    npcsLevel2.append(testNPC)
+	npc_core = NPC(
+    520,
+    81,
+    298,
+    [
+        "Ovo je Neon Vektor.",
+        "Grad kontrolira The Core.",
+        "Ljudi vise ne znaju sto je stvarno.",
+        "Tvoja sjecanja su zakljucana."
+    ]
+)
+
+npc_oruzje = NPC(
+    900,
+    81,
+    298,
+    [
+        "Uzmi oruzje ispred sebe.",
+        "Trebat ce ti.",
+        "Neprijatelji nece stati.",
+        "Pucaj i nastavi dalje."
+    ]
+)
+
+npc_boss = NPC(
+    1400,
+    81,
+    298,
+    [
+        "Iza ovih vrata je The Core.",
+        "Ako ga unistis, grad ce se probuditi.",
+        "Ali on zna sve tvoje pokrete.",
+        "Budi spreman."
+    ]
+)
+
+npcsLevel2.append(npc_bolnica)
+npcsLevel2.append(npc_core)
+npcsLevel2.append(npc_oruzje)
+npcsLevel2.append(npc_boss)
     
     Level1Y = 0
     Level2Y = 17

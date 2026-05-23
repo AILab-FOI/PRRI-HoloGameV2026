@@ -573,6 +573,77 @@ class Projectile:
         self.drawSelf = False
         self.destroyed = True
 
+class BossProjectile:
+    def __init__(self, x, y, dx):
+        self.x = x
+        self.y = y
+
+        self.dx = dx
+        self.dy = 0
+
+        self.width = 8
+        self.height = 8
+
+        self.sprite = 320
+        self.damage = 20
+
+        self.dead = False
+
+        self.damageTrigger = DamageTrigger(
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            self.damage
+        )
+
+    def check_collision(self, dx, dy, colliders):
+        self.x += dx
+        self.y += dy
+
+        for c in colliders:
+            if c.check(self):
+                self.x -= dx
+                self.y -= dy
+                return True
+
+        self.x -= dx
+        self.y -= dy
+
+        return False
+
+    def update(self, colliders):
+        if self.dead:
+            return
+
+        if self.check_collision(self.dx, self.dy, colliders):
+            self.destroy()
+            return
+
+        self.x += self.dx
+        self.y += self.dy
+
+        self.damageTrigger.x = self.x
+        self.damageTrigger.y = self.y
+
+    def draw(self):
+        if not self.dead:
+            spr(
+                self.sprite,
+                int(self.x - cam_x),
+                int(self.y - cam_y),
+                0
+            )
+
+    def destroy(self):
+        self.dead = True
+
+        if self.damageTrigger in enemyDamageTriggers:
+            enemyDamageTriggers.remove(self.damageTrigger)
+
+        if self in enemyProjectiles:
+            enemyProjectiles.remove(self)
+
 class PowerUp:
     def __init__(self, x, y, sprite_id, power_type):
         self.x = x
@@ -711,10 +782,10 @@ class Enemy:
                 if self.health < 1:
                     self.dead = True
                     self.destroy()
-                
-                d.owner.destroy()
+                if d.owner is not None and not d.owner.destroyed:
+                    d.owner.destroy()
                 return True
-        
+    
         return False
 
     def update(self, colliders, damageTriggers):
@@ -1047,6 +1118,93 @@ class BigEnemy(Enemy):
         self.health = 200
         self.sprite = 269
 
+class BossEnemy(Enemy):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+
+        self.width = 32
+        self.height = 32
+
+        self.sprite = 323
+
+        self.health = 500
+
+        self.dx = 1
+        self.speed = 1
+
+        self.attackCooldown = 90
+        self.attackTimer = 0
+
+        self.contactDamageTrigger = DamageTrigger(
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            40
+        )
+
+    def shoot(self):
+        proj = BossProjectile(
+            self.x + 12,
+            self.y + 12,
+            self.facing
+        )
+
+        BossProjectiles.append(proj)
+        enemyDamageTriggers.append(proj.damageTrigger)
+
+        sfx(10, "C-4", 15)
+
+    def update(self, colliders, damageTriggers):
+        if self.dead:
+            return
+
+        # MOVEMENT
+        self.x += self.dx * self.speed
+
+        if self.check_collision(4 * self.dx, 0, colliders):
+            self.dx = -self.dx
+            self.facing *= -1
+
+        # SHOOT TIMER
+        if self.attackTimer > 0:
+            self.attackTimer -= 1
+        else:
+            self.shoot()
+            self.attackTimer = self.attackCooldown
+
+        # GRAVITY
+        if not self.check_collision(0, self.vsp + 1, colliders):
+            self.vsp += 0.25
+        else:
+            self.vsp = 0
+
+        # Y COLLISION
+        if self.check_collision(0, self.vsp, colliders):
+            self.vsp = 0
+
+        self.y += self.vsp
+
+        # DAMAGE
+        self.check_damage_trigger(damageTriggers)
+
+        if self.iframe > 0:
+            self.iframe -= 1
+
+        self.contactDamageTrigger.x = self.x
+        self.contactDamageTrigger.y = self.y
+
+    def draw(self):
+        if not self.dead:
+            spr(self.sprite, int(self.x - cam_x), int(self.y - cam_y), 0, 1, int(self.facing == -1), 0, 4, 4)
+
+
+class BountyHunter(BossEnemy):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+
+        self.sprite = 290
+
 class WaterDropper():
     def __init__(self, x, y, water_tile_id, stopping_tile_id, delay, restartDelay = 0, startingDelay = 0):
         self.x = x
@@ -1137,6 +1295,8 @@ powerupsGlobal = []
 npcsGlobal = []
 
 projectiles = []
+BossProjectiles = []
+enemyProjectiles = []
     
 background_tile_indexes = [
     1, 3, 4, 5, 6, 7, 8, 14, 15, 16, 19, 20, 21, 22, 25, 26, 29, 35, 36, 37, 38, 51, 52, 53, 54, 55, 56, 71, 72, 73, 74, 75, 87, 88, 89, 90, 91, 99, 100, 104, 105, 115, 116, 117, 118, 121, 122, 123, 124, 125, 131, 132, 133, 134, 137, 138, 139, 140, 141, 144, 145, 146, 147, 148, 149, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 163, 164, 165, 168, 169, 170, 171, 172, 173, 174, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 187, 188, 192, 193, 194, 198, 199, 200, 201, 208, 209, 210
@@ -1176,10 +1336,24 @@ waterDroppers = [
     ]
 
 def game_setup():
-    global player, gun, katana, enemiesGlobal, enemiesLevel1, enemiesLevel2, enemiesLevel3, teleportTriggersGlobal, teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3, levels, activeLevelIndex, activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, activeLevel, screenTransition, waterDroppers
-    
+    global player, gun, katana
+    global enemiesGlobal
+    global enemiesLevel1, enemiesLevel2, enemiesLevel3
+    global teleportTriggersGlobal
+    global teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3
+    global levels
+    global activeLevelIndex
+    global activeLevelMapX, activeLevelMapY
+    global activeLevelSizeX, activeLevelSizeY
+    global activeLevel
+    global screenTransition
+    global waterDroppers
+    global BossProjectiles
+    BossProjectiles = []
+
     player = Player()
     npcsGlobal = []
+
     gun = RangedWeapon(player, 30, 25)
     katana = Katana(player, 60, 25)
 
@@ -1197,79 +1371,55 @@ def game_setup():
         PowerUp(3 * tile_size, 5 * tile_size, 325, "poison_immunity")
     ]
 
-    
     npcsLevel1 = []
     npcsLevel2 = []
     npcsLevel3 = []
 
-    npcsLevel1 = []
-    npcsLevel2 = []
-    npcsLevel3 = []
-
-        # NPC dijalozi
-	npc_bolnica = NPC(
-    300,
-    81,
-    298,
-    [
+    # NPC dijalozi
+    npc_bolnica = NPC(300, 81, 298, [
         "Hej, ti si budan!",
         "Sustav te vec trazi.",
         "Ne zadrzavaj se ovdje.",
         "Idi prema izlazu."
-    ]
-)
+    ])
 
-	npc_core = NPC(
-    520,
-    81,
-    298,
-    [
+    npc_core = NPC(520, 81, 298, [
         "Ovo je Neon Vektor.",
         "Grad kontrolira The Core.",
         "Ljudi vise ne znaju sto je stvarno.",
         "Tvoja sjecanja su zakljucana."
-    ]
-)
+    ])
 
-npc_oruzje = NPC(
-    900,
-    81,
-    298,
-    [
+    npc_oruzje = NPC(900, 81, 298, [
         "Uzmi oruzje ispred sebe.",
         "Trebat ce ti.",
         "Neprijatelji nece stati.",
         "Pucaj i nastavi dalje."
-    ]
-)
+    ])
 
-npc_boss = NPC(
-    1400,
-    81,
-    298,
-    [
+    npc_boss = NPC(1400, 81, 298, [
         "Iza ovih vrata je The Core.",
         "Ako ga unistis, grad ce se probuditi.",
         "Ali on zna sve tvoje pokrete.",
         "Budi spreman."
-    ]
-)
+    ])
 
-npcsLevel2.append(npc_bolnica)
-npcsLevel2.append(npc_core)
-npcsLevel2.append(npc_oruzje)
-npcsLevel2.append(npc_boss)
-    
+    npcsLevel2.append(npc_bolnica)
+    npcsLevel2.append(npc_core)
+    npcsLevel2.append(npc_oruzje)
+    npcsLevel2.append(npc_boss)
+
     Level1Y = 0
     Level2Y = 17
     Level3Y = 34
     Level4Y = 51
     Level5Y = 68
     Level6Y = 85
-    
+
     enemiesLevel1 = []
     enemiesLevel1.append(Enemy(19 * tile_size, (12 - Level1Y) * tile_size))
     enemiesLevel1.append(SmallEnemy(20 * tile_size, (8 - Level1Y) * tile_size))
+    enemiesLevel1.append(BountyHunter(224 * tile_size, (10 - Level1Y) * tile_size))
 
     enemiesLevel2 = []
     enemiesLevel2.append(SmallEnemy(161 * tile_size, (29 - Level2Y) * tile_size))
@@ -1280,12 +1430,13 @@ npcsLevel2.append(npc_boss)
     enemiesLevel3.append(StaticEnemy(67 * tile_size, (37 - Level3Y) * tile_size))
 
     enemiesLevel4 = []
-    enemiesLevel4.append(BigEnemy(30 *tile_size, (63 - Level4Y) * tile_size))
-    enemiesLevel4.append(BigEnemy(55 *tile_size, (63 - Level4Y) * tile_size))
-    enemiesLevel4.append(BigEnemy(100 *tile_size, (63 - Level4Y) * tile_size))
-    enemiesLevel4.append(BigEnemy(150 *tile_size, (63 - Level4Y) * tile_size))
-    enemiesGlobal = []
+    enemiesLevel4.append(BigEnemy(30 * tile_size, (63 - Level4Y) * tile_size))
+    enemiesLevel4.append(BigEnemy(55 * tile_size, (63 - Level4Y) * tile_size))
+    enemiesLevel4.append(BigEnemy(100 * tile_size, (63 - Level4Y) * tile_size))
+    enemiesLevel4.append(BigEnemy(150 * tile_size, (63 - Level4Y) * tile_size))
+    enemiesLevel4.append(BossEnemy(220 * tile_size, (63 - Level4Y) * tile_size))
 
+    enemiesGlobal = []
 
     teleportTriggersLevel1 = [
         TeleportTrigger(4 * tile_size, 16 * 2, 2 * tile_size, 3 * tile_size, 5 * tile_size, 26 * 2, 1)
@@ -1298,43 +1449,45 @@ npcsLevel2.append(npc_boss)
 
     teleportTriggersLevel3 = [
         TeleportTrigger(1 * tile_size, 34 * 2, 3 * tile_size, 4 * tile_size, 174 * tile_size, 34 * 2, 1),
-        TeleportTrigger(1710, 113, tile_size,tile_size, 37, 90, 3)
+        TeleportTrigger(1710, 113, tile_size, tile_size, 37, 90, 3)
     ]
 
     teleportTriggersLevel4 = [
         TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5),
         TeleportTrigger(1060, 105, tile_size, tile_size, 25, 60, 4),
-        TeleportTrigger(8, 105, tile_size, tile_size, 1645, 105,2 )
+        TeleportTrigger(8, 105, tile_size, tile_size, 1645, 105, 2)
     ]
 
     teleportTriggersLevel5 = [
-        TeleportTrigger(14, 65,  tile_size, tile_size, 1050, 105, 3)
+        TeleportTrigger(14, 65, tile_size, tile_size, 1050, 105, 3)
     ]
 
     teleportTriggersLevel6 = [
-        TeleportTrigger(12, 105,  tile_size, tile_size, 566, 105, 3)
+        TeleportTrigger(12, 105, tile_size, tile_size, 566, 105, 3)
     ]
 
     teleportTriggersGlobal = []
 
     levels = [
-        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1,powerupsLevel1,npcsLevel1),#kono
-        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2,npcsLevel2), #nicabo
-        Level(1600,70,240,17, 0, 34, enemiesLevel3, teleportTriggersLevel3,powerupsLevel3,npcsLevel3),#grad
-        Level(8, 90, 240, 17, 0, 51, enemiesLevel3, teleportTriggersLevel4,[],[]), #lab
-        Level(8, 90, 240, 17, 0, 68, enemiesLevel3, teleportTriggersLevel5,[],[]), #parkour 5 level index = 4
-        Level(8, 90, 60, 17, 0, 85, enemiesLevel3, teleportTriggersLevel6,[],[]) #control 6 level index = 5
-
+        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1, npcsLevel1),
+        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2),
+        Level(1600, 70, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3),
+        Level(8, 90, 240, 17, 0, 51, enemiesLevel4, teleportTriggersLevel4, [], []),
+        Level(8, 90, 240, 17, 0, 68, enemiesLevel3, teleportTriggersLevel5, [], []),
+        Level(8, 90, 60, 17, 0, 85, enemiesLevel3, teleportTriggersLevel6, [], [])
     ]
 
     activeLevelIndex = 1
+
     activeLevelMapX = 0
     activeLevelMapY = 0
+
     activeLevelSizeX = 0
     activeLevelSizeY = 0
+
     activeLevel = levels[activeLevelIndex]
+
     activeLevel.LoadLevel(activeLevel.startX, activeLevel.startY)
-    
     screenTransition = ScreenTransition()
 
 def update_camera():
@@ -1401,7 +1554,11 @@ def TIC():
     
     for pr in projectiles:
         pr.update(collidables)
-        
+
+    for bp in BossProjectiles[:]:
+        bp.update(collidables)
+        bp.draw()
+
     for l in levels:
         l.Update()
         
@@ -1656,8 +1813,8 @@ def TIC():
 # 030:999900009b990000999900009b99000099990000009900000099000009990000
 # 032:00000000000003330000d3330000d3330000330300003333000033330000ccbb
 # 033:0000000033300000333d0000333d0000303300003333000033330000bbcc0000
-# 034:aaaaaaaaaaaaaaaaaaaaa666aaaa6656aaaa6657aaa66677aa666677aaaaaaa3
-# 035:aaaaaaaaaaaaaaaa6666aaaa6222aaaa7727aaaa7727aaaa7777aaaa333aaaaa
+# 034:0000000000000000000006660000665600006657000666770066667700000003
+# 035:0000000000000000666600006222000077270000772700007777000033300000
 # 036:aaaaa000aaaa0033aaa03333aaa0f663aaaa3333aaaa0000aaaa0004aaaaaa00
 # 037:000aaaaa3330aaaa33330aaa35330aaa3333aaaa0000aaaa4000aaaa000aaaaa
 # 038:000099990009955900093933000935b300093933000033330000333500000033
@@ -1668,8 +1825,8 @@ def TIC():
 # 043:000000000000000011100000333110003533000032330000f333000033300000
 # 048:000cc2bb000cccbb000cccbb000cccbb0003cfff0000cf000000ff00000fff00
 # 049:bbcc0000bbcc0000bbcc0000bbcc0000fff3000000fc000000ff00000fff0000
-# 050:aaaae272aaaee777aaaee777aaaae777aaaaa077aaaaaffaaaaaaffaaaaaafff
-# 051:77227aaa22777aaa77777aaa77777aaa77700aaaaffaaaaaaffaaaaaafffaaaa
+# 050:0000e272000ee777000ee7770000e7770000007700000ff000000ff000000fff
+# 051:77227000227770007777700077777000777000000ff000000ff000000fff0000
 # 052:aaaa8009aaa30009aaa22009aaa32009aaa33009aaaaa880aaaaa88aaaaa000a
 # 053:9003aaaa9002aaaa9002aaaa9003aaaa9003aaaa0000aaaaaa00aaaaa000aaaa
 # 054:00000fea000fffea000fffea00044fea000ddfea0000099900000f900000fff0

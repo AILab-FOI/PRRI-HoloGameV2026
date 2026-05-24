@@ -584,7 +584,7 @@ class BossProjectile:
         self.width = 8
         self.height = 8
 
-        self.sprite = 320
+        self.sprite = 265
         self.damage = 20
 
         self.dead = False
@@ -1517,7 +1517,7 @@ def game_setup():
     ]
 
     teleportTriggersLevel5 = [
-        TeleportTrigger(14, 65, tile_size, tile_size, 1050, 105, 3)
+        TeleportTrigger(14, 65, tile_size, tile_size, 1030, 105, 3)
     ]
 
     teleportTriggersLevel6 = [

@@ -1057,6 +1057,8 @@ class Level:
                         e.x = e.startingPosX
                         e.y = e.startingPosY
                         enemiesGlobal.append(e)
+                        
+                    playerDamageTriggers = []
 
                     for e in enemiesGlobal:
                         playerDamageTriggers.append(e.contactDamageTrigger)
@@ -1384,6 +1386,7 @@ def game_setup():
     global player, gun, katana
     global enemiesGlobal
     global enemiesLevel1, enemiesLevel2, enemiesLevel3
+    global playerDamageTriggers
     global teleportTriggersGlobal
     global teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3
     global levels
@@ -1489,6 +1492,8 @@ def game_setup():
     enemiesLevel4.append(BossEnemy(220 * tile_size, (63 - Level4Y) * tile_size))
 
     enemiesGlobal = []
+
+    playerDamageTriggers = []
 
     teleportTriggersLevel1 = [
         TeleportTrigger(4 * tile_size, 16 * 2, 2 * tile_size, 3 * tile_size, 5 * tile_size, 26 * 2, 1),

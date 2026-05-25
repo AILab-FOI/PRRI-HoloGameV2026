@@ -7,7 +7,34 @@
   <script src="/js/NoSleep.js"></script>
   <script src="/js/socket.io.min.js" crossorigin="anonymous"></script>
   <script type="text/javascript">
+
+
+	var BASE_WIDTH = 344;
+	var BASE_HEIGHT = 181;
+
+	function resizeButtons() {
+		var img = document.getElementById('imgctrl');
+		var scaleX = img.clientWidth / BASE_WIDTH;
+		var scaleY = img.clientHeight / BASE_HEIGHT;
+
+		var buttons = document.querySelectorAll('.cbutton');
+		buttons.forEach(function(btn) {
+			var origLeft   = parseFloat(btn.getAttribute('data-x'));
+			var origTop    = parseFloat(btn.getAttribute('data-y'));
+			var origWidth  = parseFloat(btn.getAttribute('data-w'));
+			var origHeight = parseFloat(btn.getAttribute('data-h'));
+
+			btn.style.left   = (origLeft   * scaleX) + 'px';
+			btn.style.top    = (origTop    * scaleY) + 'px';
+			btn.style.width  = (origWidth  * scaleX) + 'px';
+			btn.style.height = (origHeight * scaleY) + 'px';
+		});
+	}
+
+	window.onresize = resizeButtons;
+
     window.onload = function () {
+	resizeButtons();
 	var ImageMap = function (map) {
 	    var n,
                 areas = map.getElementsByTagName('area'),
@@ -54,126 +81,96 @@
 	    ws.emit( 'ctrl', { data: JSON.stringify( { "cmd":ctrl, "context":context, "game":"{{game}}" } ) } );
 	}
 	
-	$('.cbutton').on( 'mousedown touchstart', function( event ){
+	$('.cbutton').on('mousedown touchstart', function( event ){
 	    event.preventDefault();
-	    if(event.handled !== true) {
-		
-		send( $( this ).attr('alt'), 'start' );
-		console.log( 'generic', $( this ).attr('alt'), 'start' );
-		navigator.vibrate(100); 
-		
-		event.handled = true;
-	    } else {
-		return false;
-	    }
+		if (event.handled !== true) {
+			var ctrl = $(this).attr('alt');
+			
+			if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
+				send(ctrl, 'stop');
+			}
+			
+			event.handled = true;
+		} else {
+			return false;
+		}
 	});
 	
 	$('.cbutton').on( 'mouseup click touchend touchcancel', function( event ){
 	    event.preventDefault();
-	    if(event.handled !== true) {
-		
-		send( $( this ).attr('alt'), 'stop' );
-		
-		console.log( 'generic', $( this ).attr('alt'), 'stop' );
-		
-		event.handled = true;
-	    } else {
-		return false;
-	    }
+		if (event.handled !== true) {
+			var ctrl = $(this).attr('alt');
+
+			if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
+				send(ctrl, 'stop');
+			}
+			
+			event.handled = true;
+		} else {
+			return false;
+		}
 	});
 
-	
-	var img = document.getElementById('imgctrl');
-	var mc = new Hammer(img);
-	
-	var UP = new Hammer( document.getElementById('UP') );
-	UP.on( "tap", function( event ){
-	    console.log( 'tap up' );
-	    send( "UP", 'start' );
-	    send( "UP", 'stop' );
-	});
-	UP.on( "press", function( event ){
-	    console.log( 'tap press' );
-	    send( "UP", 'start' );
-	});
-	
-	var DOWN = new Hammer( document.getElementById('DOWN') );
-	DOWN.on( "tap", function( event ){
-	    send( "DOWN", 'start' );
-	    send( "DOWN", 'stop' );
-	});
-	DOWN.on( "press", function( event ){
-	    send( "DOWN", 'start' );
-	});
-	
-	var LEFT = new Hammer( document.getElementById('LEFT') );
-	LEFT.on( "tap", function( event ){
-	    send( "LEFT", 'start' );
-	    send( "LEFT", 'stop' );
-	});
-	LEFT.on( "press", function( event ){
-	    send( "LEFT", 'start' );
-	});
-	
-	var RIGHT = new Hammer( document.getElementById('RIGHT') );
-	RIGHT.on( "tap", function( event ){
-	    send( "RIGHT", 'start' );
-	    send( "RIGHT", 'stop' );
-	});
-	RIGHT.on( "press", function( event ){
-	    send( "RIGHT", 'start' );
-	});
-	
-	var SELECT = new Hammer( document.getElementById('SELECT') );
-	SELECT.on( "tap", function( event ){
-	    send( "SELECT", 'start' );
-	    send( "SELECT", 'stop' );
-	});
-	SELECT.on( "press", function( event ){
-	    send( "SELECT", 'start' );
-	});
-	
-	var START = new Hammer( document.getElementById('START') );
-	START.on( "tap", function( event ){
-	    send( "START", 'start' );
-	    send( "START", 'stop' );
-	});
-	START.on( "press", function( event ){
-	    send( "START", 'start' );
-	});
-	
-	var A = new Hammer( document.getElementById('A') );
-	A.on( "tap", function( event ){
-	    send( "A", 'start' );
-	    send( "A", 'stop' );
-	});
-	A.on( "press", function( event ){
-	    send( "A", 'start' );
-	});
-	
-	var B = new Hammer( document.getElementById('B') );
-	B.on( "tap", function( event ){
-	    send( "B", 'start' );
-	    send( "B", 'stop' );
-	});
-	B.on( "press", function( event ){
-	    send( "B", 'start' );
-	});
-	
+	var activeButtons = {};
+
+	function getButtonFromTouch(touch) {
+		var el = document.elementFromPoint(touch.clientX, touch.clientY);
+		if (el && el.classList.contains('cbutton')) return el;
+		return null;
+	}
+
+	document.getElementById('button-overlay').addEventListener('touchstart', function(event) {
+		event.preventDefault();
+		Array.from(event.changedTouches).forEach(function(touch) {
+			var btn = getButtonFromTouch(touch);
+			if (btn) {
+				var ctrl = btn.getAttribute('alt');
+				activeButtons[touch.identifier] = ctrl;
+				send(ctrl, 'start');
+				if (['START', 'SELECT', 'A', 'B'].includes(ctrl)) {
+					send(ctrl, 'stop');
+				}
+				navigator.vibrate(100);
+			}
+		});
+	}, { passive: false });
+
+	document.getElementById('button-overlay').addEventListener('touchend', function(event) {
+		event.preventDefault();
+		Array.from(event.changedTouches).forEach(function(touch) {
+			var ctrl = activeButtons[touch.identifier];
+			if (ctrl && ['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
+				send(ctrl, 'stop');
+			}
+			delete activeButtons[touch.identifier];
+		});
+	}, { passive: false });
+
+	document.getElementById('button-overlay').addEventListener('touchcancel', function(event) {
+		event.preventDefault();
+		Array.from(event.changedTouches).forEach(function(touch) {
+			var ctrl = activeButtons[touch.identifier];
+			if (ctrl && ['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
+				send(ctrl, 'stop');
+			}
+			delete activeButtons[touch.identifier];
+		});
+	}, { passive: false });
+		
 	
     }
   </script>
   <body bgcolor="#000000"  style="-webkit-touch-callout: none !important;" oncontextmenu="return false" >
     <img id="imgctrl" src="/images/nes-ctrl.png" width="100%" usemap="#ctrls" style="-webkit-touch-callout: none !important;" /><!-height="181"-->
     <map name="ctrls" id="ctrls">
-      <area class="cbutton" shape="rect" coords="15,50,105,81" href="javascript:void(0)"  alt="UP" id="UP"/>
-      <area class="cbutton" shape="rect" coords="15,107,105,129" href="javascript:void(0)"  alt="DOWN" id="DOWN"/>
-      <area class="cbutton" shape="rect" coords="15,50,47,129" href="javascript:void(0)"  alt="LEFT" id="LEFT"/>
-      <area class="cbutton" shape="rect" coords="73,50,105,129" href="javascript:void(0)"  alt="RIGHT" id="RIGHT"/>
-      <area class="cbutton" shape="rect" coords="119,102,160,119" href="javascript:void(0)"  alt="SELECT" id="SELECT"/>
-      <area class="cbutton" shape="rect" coords="163,102,204,119" href="javascript:void(0)"  alt="START" id="START"/>
-      <area class="cbutton" shape="rect" coords="273,91,309,129" href="javascript:void(0)"  alt="A" id="A"/>
-      <area class="cbutton" shape="rect" coords="227,91,265,129" href="javascript:void(0)"  alt="B" id="B"/>
+	 <div class="cbutton" alt="UP"     data-x="15"  data-y="50"  data-w="90"  data-h="31"></div>
+	 <div class="cbutton" alt="DOWN"   data-x="15"  data-y="107" data-w="90"  data-h="22"></div>
+	 <div class="cbutton" alt="LEFT"   data-x="15"  data-y="50"  data-w="32"  data-h="79"></div>
+	 <div class="cbutton" alt="RIGHT"  data-x="73"  data-y="50"  data-w="32"  data-h="79"></div>
+	 <div class="cbutton" alt="SELECT" data-x="119" data-y="102" data-w="41"  data-h="17"></div>
+	 <div class="cbutton" alt="START"  data-x="163" data-y="102" data-w="41"  data-h="17"></div>
+	 <div class="cbutton" alt="B"      data-x="227" data-y="91"  data-w="38"  data-h="38"></div>
+	 <div class="cbutton" alt="A"      data-x="273" data-y="91"  data-w="36"  data-h="38"></div>
     </map>
   </body>
 </html>

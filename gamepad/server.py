@@ -103,12 +103,8 @@ def ctrl():
         socketio.emit('stop')
 
     # Resolve TIC-80 binary
-    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    """candidates = []
-    if sys.platform.startswith('win'):
-        candidates = ['tic80.exe', 'tic80']
-    else:
-        candidates = ['tic80', 'tic80.exe']
+    src_dir = "/usr/bin/"
+    candidates = ['tic80']
 
     for name in candidates:
         path = os.path.join(src_dir, name)
@@ -116,11 +112,11 @@ def ctrl():
             tic80_exe = path
             break
     else:
-        abort(500, description=f"TIC-80 binary not found or not executable in {src_dir}")
+    	abort(500, description=f"TIC-80 binary not found or not executable in {path}")
 
-    print("Launching TIC-80 from:", tic80_exe)"""
-
-    print("Launching TIC-80 via Flatpak")
+    print("Launching TIC-80 from:", tic80_exe)
+ 
+    """print("Launching TIC-80 via Flatpak")
 
     command = [
         'flatpak',
@@ -130,8 +126,9 @@ def ctrl():
         '.',
         '--cmd',
         'load ProtocolX.py & run'
-    ]
+    ]"""
 
+    command = [ "tic80", "--fs=/home/barica/Desktop/PRRI-HoloGameV2026", "--cmd=load ProtocolX.py & run" ]
     popenAndCall(game_exit_callback, *command, cwd=src_dir)
     GAME_STARTED = True
 

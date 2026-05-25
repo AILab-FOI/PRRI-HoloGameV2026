@@ -97,6 +97,8 @@ class Player:
 
         self.activeWeapon = "none"
 
+        self.hasKey = False
+
         self.hasImmunity = False
         self.max_jumps = 1
 
@@ -127,10 +129,19 @@ class Player:
 
         if tile in tile_damage_type and self.iframeTimer <= 0:
             dmg_type = tile_damage_type[tile]
+
             if dmg_type == "poison" and self.hasImmunity:
                 return False
-            self.health -= 100
-            self.iframeTimer = self.iframeTime
+
+            if dmg_type == "spike":
+                self.health -= 1.5
+            elif dmg_type == "poison":
+                self.health -= 100
+            elif dmg_type == "instant":
+                self.health = 0
+
+            self.iframeTimer = self.iframeTimer
+
             if self.health <= 0:
                 self.dead = True
 
@@ -147,11 +158,15 @@ class Player:
 
     def check_teleport_triggers(self, teleportTriggers):
         for t in teleportTriggers:
+
+            # LOCKED DOOR
+            if t.levelIndex == 2 and not player.hasKey:
+                continue
+
             if t.check(self.hitbox):
                 t.Teleport()
-                
                 return True
-        
+
         return False
 
     def update(self, colliders, damageTriggers):
@@ -711,6 +726,42 @@ class PowerUp:
         if not self.collected:
             spr(self.sprites[self.anim_index], int(self.x - cam_x), int(self.y - cam_y))
 
+class Key:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+        self.width = 8
+        self.height = 8
+
+        self.sprite = 355
+        self.collected = False
+
+    def check_collision_with_player(self):
+        return (
+            self.x < player.x + player.width and \
+            self.x + self.width > player.x and \
+            self.y < player.y + player.height and \
+            self.y + self.height > player.y
+        )
+
+    def update(self):
+        if self.collected:
+            return
+
+        if self.check_collision_with_player():
+            self.collected = True
+            player.hasKey = True
+
+    def draw(self):
+        if not self.collected:
+            spr(
+                self.sprite,
+                int(self.x - cam_x),
+                int(self.y - cam_y),
+                0
+            )
+
 class NPC:
     def __init__(self, x, y, sprite_id, dialogue):
         self.x = x
@@ -1057,10 +1108,7 @@ class Level:
                         e.x = e.startingPosX
                         e.y = e.startingPosY
                         enemiesGlobal.append(e)
-                    
-                    global playerDamageTriggers
-                    playerDamageTriggers = []
-
+                        
                     for e in enemiesGlobal:
                         playerDamageTriggers.append(e.contactDamageTrigger)
                     
@@ -1159,6 +1207,20 @@ class BigEnemy(Enemy):
 
         self.health = 200
         self.sprite = 269
+
+class KeyEnemy(Enemy):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+
+        self.sprite = 260
+        self.health = 100
+
+    def destroy(self):
+
+        key = Key(self.x, self.y)
+        keysGlobal.append(key)
+
+        Enemy.destroy(self)
 
 class BossEnemy(Enemy):
     def __init__(self, x, y):
@@ -1341,6 +1403,7 @@ playerDamageTriggers = []
 enemyDamageTriggers = []
 powerupsGlobal = []
 npcsGlobal = []
+keysGlobal = []
 
 projectiles = []
 BossProjectiles = []
@@ -1488,7 +1551,7 @@ def game_setup():
     Level6Y = 85
 
     enemiesLevel1 = []
-    enemiesLevel1.append(Enemy(19 * tile_size, (12 - Level1Y) * tile_size))
+    enemiesLevel1.append(KeyEnemy(19 * tile_size, (12 - Level1Y) * tile_size))
     
    # enemiesLevel1.append(BountyHunter(224 * tile_size, (10 - Level1Y) * tile_size))
 
@@ -1643,6 +1706,12 @@ def TIC():
 
     for p in powerupsGlobal:
         p.draw()
+
+    for k in keysGlobal:
+        k.update()
+
+    for k in keysGlobal:
+        k.draw()
 
    # for w in waterDroppers:
        # w.update()
@@ -1839,7 +1908,7 @@ def TIC():
 # 180:5ccccccb5ccccccc5ccccccc5ccccccc5ccccccccc555ccc5ccccccc5ccccccc
 # 181:5555555b5ccccccbcc555ccb5ccccccb5ccccccb5ccbbbcc5ccccccb5bbbbbbb
 # 182:88888888888888dd888888dd88888ddd88888ddb88888dbb8888dddb8888dddd
-# 183:888888bbdd888bbbddd8bb88ddddb888ddddd888bddddd88dddddd88ddddddd8
+# 183:888888bbdd888bb8ddd8bb88ddddb888ddddd888bddddd88dddddd88ddddddd8
 # 184:888888888888888888888888888888888888888888888888888888888888888b
 # 185:888888bb88888bb88888bb88888bb88888bb88888bb88888bb888888b8888888
 # 186:3333333333333333333333333333333333333333333333333333333333333333

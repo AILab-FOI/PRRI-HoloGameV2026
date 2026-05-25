@@ -1454,15 +1454,30 @@ def game_setup():
         "Controls:",
         "Arrows - move",
         "A - jump",
-        "B - combat"
+        "B - combat",
+        "see you around broo!!"
 
     ])
+
+    npc_jinx = NPC(286, 112, 294, [
+    "01101000 01100101 01111001",
+    "...",
+    "wait... translating",
+    "So it's really you.",
+    "The guy from the billboard.",
+    "Snark...",
+    "You survived being Protocol X-ed.",
+    "Most don't last a week.",
+    "Impressive.",
+    "See you around, chum."
+])
 
     
 
     npcsLevel2.append(npc_doc)
     npcsLevel2.append(npc_veso)
     
+    npcsLevel3.append(npc_jinx)
 
     Level1Y = 0
     Level2Y = 17

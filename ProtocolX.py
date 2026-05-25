@@ -1057,7 +1057,8 @@ class Level:
                         e.x = e.startingPosX
                         e.y = e.startingPosY
                         enemiesGlobal.append(e)
-                        
+                    
+                    global playerDamageTriggers
                     playerDamageTriggers = []
 
                     for e in enemiesGlobal:

@@ -1108,9 +1108,13 @@ class Level:
                         e.x = e.startingPosX
                         e.y = e.startingPosY
                         enemiesGlobal.append(e)
-                        
+                    
+                    global playerDamageTriggers
+                    playerDamageTriggers = []
+
                     for e in enemiesGlobal:
-                        playerDamageTriggers.append(e.contactDamageTrigger)
+                        if (not e.dead):
+                            playerDamageTriggers.append(e.contactDamageTrigger)
                     
                     global activeLevelMapIndex
                     activeLevelMapIndex = activeLevelIndex
@@ -1218,7 +1222,6 @@ class KeyEnemy(Enemy):
         self.health = 100
 
     def destroy(self):
-
         key = Key(self.x, self.y)
         keysGlobal.append(key)
 
@@ -1708,22 +1711,23 @@ def TIC():
     for p in powerupsGlobal:
         p.draw()
     
-    screenTransition.update()
-    
-
     for k in keysGlobal:
         k.update()
 
     for k in keysGlobal:
         k.draw()
-
-   # for w in waterDroppers:
-       # w.update()
+    
+    # for w in waterDroppers:
+        # w.update()
     for npc in npcsGlobal:
         npc.update()
         npc.draw()
     dialogueManager.update()
     dialogueManager.draw()
+    
+    screenTransition.update()
+    
+    
     # death
     if player.dead:
         rect(0,0,240,136,12)

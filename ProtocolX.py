@@ -30,9 +30,9 @@ class TeleportTrigger(Collidable):
         
     def Teleport(self):
         global activeLevelIndex
-        activeLevelIndex = self.levelIndex
-        activeLevel = levels[activeLevelIndex]
+        activeLevel = levels[self.levelIndex]
         activeLevel.LoadLevel(self.teleportToX, self.teleportToY)
+        activeLevelIndex = self.levelIndex
 
 # --- HELPER ---
 def move_towards(a, b, v):
@@ -124,7 +124,7 @@ class Player:
         tile_x = int((self.x + self.width / 2) / tile_size)
         tile_y = int((self.y + self.height) / tile_size)
 
-        tile = mget(tile_x, tile_y + activeLevelIndex * 17)
+        tile = mget(tile_x, tile_y + activeLevelMapIndex * 17)
         print(str(tile),10,20,12)
 
         if tile in tile_damage_type and self.iframeTimer <= 0:
@@ -509,11 +509,11 @@ class Projectile:
             tile_x = int((self.x + self.width / 2) / tile_size)
             tile_y = int((self.y + self.height) / tile_size)
 
-            tile = mget(tile_x, tile_y + activeLevelIndex * 17)
+            tile = mget(tile_x, tile_y + activeLevelMapIndex * 17)
             
             for b in breakable_tile_indexes:
                 if (b.tileID == tile):
-                    mset(tile_x, tile_y + activeLevelIndex * 17, b.brokenTileID)
+                    mset(tile_x, tile_y + activeLevelMapIndex * 17, b.brokenTileID)
                     return True
             
             return False
@@ -522,7 +522,7 @@ class Projectile:
             tile_x = int((self.x + self.width / 2) / tile_size)
             tile_y = int((self.y + self.height) / tile_size)
 
-            tile = mget(tile_x, tile_y + activeLevelIndex * 17)
+            tile = mget(tile_x, tile_y + activeLevelMapIndex * 17)
             
             if tile not in background_tile_indexes:
                 self.destroy()
@@ -1112,6 +1112,8 @@ class Level:
                     for e in enemiesGlobal:
                         playerDamageTriggers.append(e.contactDamageTrigger)
                     
+                    global activeLevelMapIndex
+                    activeLevelMapIndex = activeLevelIndex
                     self.isLoadingLevel = False
     
     def LoadLevel(self, teleportX, teleportY):
@@ -1454,7 +1456,7 @@ def game_setup():
     global teleportTriggersGlobal
     global teleportTriggersLevel1, teleportTriggersLevel2, teleportTriggersLevel3
     global levels
-    global activeLevelIndex
+    global activeLevelIndex, activeLevelMapIndex 
     global activeLevelMapX, activeLevelMapY
     global activeLevelSizeX, activeLevelSizeY
     global activeLevel
@@ -1591,12 +1593,12 @@ def game_setup():
 
     teleportTriggersLevel4 = [
         TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5),
-        TeleportTrigger(1060, 105, tile_size, tile_size, 25, 60, 4),
+        TeleportTrigger(1076, 105, tile_size, tile_size, 25, 60, 4),
         TeleportTrigger(8, 105, tile_size, tile_size, 1645, 105, 2)
     ]
 
     teleportTriggersLevel5 = [
-        TeleportTrigger(14, 65, tile_size, tile_size, 1030, 105, 3)
+        TeleportTrigger(14, 65, tile_size, tile_size, 1050, 105, 3)
     ]
 
     teleportTriggersLevel6 = [
@@ -1615,6 +1617,7 @@ def game_setup():
     ]
 
     activeLevelIndex = 1
+    activeLevelMapIndex = activeLevelIndex
 
     activeLevelMapX = 0
     activeLevelMapY = 0
@@ -1659,7 +1662,7 @@ def TIC():
     map(activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, -cam_x, -cam_y)
     print("x: " + str(int(player.x)), 2, 2, 12)
     print("y: " + str(int(player.y)), 2, 10, 12)
-    collidables = TileCollisions([player, enemiesGlobal], activeLevelIndex, 17)
+    collidables = TileCollisions([player, enemiesGlobal], activeLevelMapIndex, 17)
 
     player.update(collidables, playerDamageTriggers)
     # ACTIVE WEAPON
@@ -1698,14 +1701,15 @@ def TIC():
 
     for l in levels:
         l.Update()
-        
-    screenTransition.update()
-
+    
     for p in powerupsGlobal:
         p.update()
 
     for p in powerupsGlobal:
         p.draw()
+    
+    screenTransition.update()
+    
 
     for k in keysGlobal:
         k.update()

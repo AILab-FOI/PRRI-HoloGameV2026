@@ -36,14 +36,14 @@ ProtocolX = {
     "developer": "Your Name",
     "controls": [
         {
-            'UP': 'W',
-            'DOWN': 'S',
+            'UP': 'R',
+            'DOWN': 'F',
             'LEFT': 'A',
             'RIGHT': 'D',
             'SELECT': 'F',
             'START': 'R',
             'A': 'X',
-            'B': 'space'
+            'B': 'W'
         }
     ]
 }

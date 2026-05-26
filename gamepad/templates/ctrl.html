@@ -1,177 +1,147 @@
 <html>
   <head>
     <title>Brain4Games Controller</title>
+    <style>
+      .cbutton {
+        position: absolute;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: pointer;
+      }
+    </style>
   </head>
   <script src="/js/jquery-3.1.0.min.js"></script>
-  <script src="/js/hammer.js"></script>
   <script src="/js/NoSleep.js"></script>
   <script src="/js/socket.io.min.js" crossorigin="anonymous"></script>
   <script type="text/javascript">
 
+    var BASE_WIDTH = 344;
+    var BASE_HEIGHT = 181;
+    var activeButtons = {};
 
-	var BASE_WIDTH = 344;
-	var BASE_HEIGHT = 181;
+    function resizeButtons() {
+      var img = document.getElementById('imgctrl');
+      var scaleX = img.clientWidth / BASE_WIDTH;
+      var scaleY = img.clientHeight / BASE_HEIGHT;
 
-	function resizeButtons() {
-		var img = document.getElementById('imgctrl');
-		var scaleX = img.clientWidth / BASE_WIDTH;
-		var scaleY = img.clientHeight / BASE_HEIGHT;
+      var buttons = document.querySelectorAll('.cbutton');
+      buttons.forEach(function(btn) {
+        var origLeft   = parseFloat(btn.getAttribute('data-x'));
+        var origTop    = parseFloat(btn.getAttribute('data-y'));
+        var origWidth  = parseFloat(btn.getAttribute('data-w'));
+        var origHeight = parseFloat(btn.getAttribute('data-h'));
 
-		var buttons = document.querySelectorAll('.cbutton');
-		buttons.forEach(function(btn) {
-			var origLeft   = parseFloat(btn.getAttribute('data-x'));
-			var origTop    = parseFloat(btn.getAttribute('data-y'));
-			var origWidth  = parseFloat(btn.getAttribute('data-w'));
-			var origHeight = parseFloat(btn.getAttribute('data-h'));
+        btn.style.left   = (origLeft   * scaleX) + 'px';
+        btn.style.top    = (origTop    * scaleY) + 'px';
+        btn.style.width  = (origWidth  * scaleX) + 'px';
+        btn.style.height = (origHeight * scaleY) + 'px';
+      });
+    }
 
-			btn.style.left   = (origLeft   * scaleX) + 'px';
-			btn.style.top    = (origTop    * scaleY) + 'px';
-			btn.style.width  = (origWidth  * scaleX) + 'px';
-			btn.style.height = (origHeight * scaleY) + 'px';
-		});
-	}
+    window.onresize = resizeButtons;
 
-	window.onresize = resizeButtons;
+    window.onload = function() {
+      resizeButtons();
 
-    window.onload = function () {
-	resizeButtons();
-	var ImageMap = function (map) {
-	    var n,
-                areas = map.getElementsByTagName('area'),
-                len = areas.length,
-                coords = [],
-                previousWidth = 344;
-	    for (n = 0; n < len; n++) {
-                coords[n] = areas[n].coords.split(',');
-	    }
-	    this.resize = function () {
-                var n, m, clen,
-		    x = document.body.clientWidth / previousWidth;
-                for (n = 0; n < len; n++) {
-		    clen = coords[n].length;
-		    for (m = 0; m < clen; m++) {
-                        coords[n][m] *= x;
-		    }
-		    areas[n].coords = coords[n].join(',');
-                }
-                previousWidth = document.body.clientWidth;
-                return true;
-	    };
-	    window.onresize = this.resize;
-        },
-	    imageMap = new ImageMap(document.getElementById('ctrls'));
-	imageMap.resize();
-	
-	
-	
-	var ws = io();
-	ws.on('connect', function() {
-            console.log( 'Connected to server!' );
-	});
-	ws.on('error', function( msg ){
-	    console.log( msg );
-	});
-	ws.on('stop', function(){
-	    alert('Game finished!');
-	    window.location.href = "/start";
-	});
-	
-	function send( ctrl, context )
-	{
-	    ws.emit( 'ctrl', { data: JSON.stringify( { "cmd":ctrl, "context":context, "game":"{{game}}" } ) } );
-	}
-	
-	$('.cbutton').on('mousedown touchstart', function( event ){
-	    event.preventDefault();
-		if (event.handled !== true) {
-			var ctrl = $(this).attr('alt');
-			
-			if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
-				send(ctrl, 'stop');
-			}
-			
-			event.handled = true;
-		} else {
-			return false;
-		}
-	});
-	
-	$('.cbutton').on( 'mouseup click touchend touchcancel', function( event ){
-	    event.preventDefault();
-		if (event.handled !== true) {
-			var ctrl = $(this).attr('alt');
+      var ws = io();
+      ws.on('connect', function() {
+        console.log('Connected to server!');
+      });
+      ws.on('error', function(msg) {
+        console.log(msg);
+      });
+      ws.on('stop', function() {
+        alert('Game finished!');
+        window.location.href = "/start";
+      });
 
-			if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
-				send(ctrl, 'stop');
-			}
-			
-			event.handled = true;
-		} else {
-			return false;
-		}
-	});
+      function send(ctrl, context) {
+        ws.emit('ctrl', { data: JSON.stringify({ "cmd": ctrl, "context": context, "game": "{{game}}" }) });
+      }
 
-	var activeButtons = {};
+      function getButtonFromTouch(touch) {
+        var el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && el.classList.contains('cbutton')) return el;
+        return null;
+      }
 
-	function getButtonFromTouch(touch) {
-		var el = document.elementFromPoint(touch.clientX, touch.clientY);
-		if (el && el.classList.contains('cbutton')) return el;
-		return null;
-	}
+      var overlay = document.getElementById('button-overlay');
 
-	document.getElementById('button-overlay').addEventListener('touchstart', function(event) {
-		event.preventDefault();
-		Array.from(event.changedTouches).forEach(function(touch) {
-			var btn = getButtonFromTouch(touch);
-			if (btn) {
-				var ctrl = btn.getAttribute('alt');
-				activeButtons[touch.identifier] = ctrl;
-				send(ctrl, 'start');
-				if (['START', 'SELECT', 'A', 'B'].includes(ctrl)) {
-					send(ctrl, 'stop');
-				}
-				navigator.vibrate(100);
-			}
-		});
-	}, { passive: false });
+      overlay.addEventListener('touchstart', function(event) {
+        event.preventDefault();
+        Array.from(event.changedTouches).forEach(function(touch) {
+          var btn = getButtonFromTouch(touch);
+          if (btn) {
+            var ctrl = btn.getAttribute('alt');
+            activeButtons[touch.identifier] = ctrl;
+            send(ctrl, 'start');
+            if (['START', 'SELECT', 'A', 'B'].includes(ctrl)) {
+              send(ctrl, 'stop');
+            }
+            navigator.vibrate(100);
+          }
+        });
+      }, { passive: false });
 
-	document.getElementById('button-overlay').addEventListener('touchend', function(event) {
-		event.preventDefault();
-		Array.from(event.changedTouches).forEach(function(touch) {
-			var ctrl = activeButtons[touch.identifier];
-			if (ctrl && ['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
-				send(ctrl, 'stop');
-			}
-			delete activeButtons[touch.identifier];
-		});
-	}, { passive: false });
+      overlay.addEventListener('touchend', function(event) {
+        event.preventDefault();
+        Array.from(event.changedTouches).forEach(function(touch) {
+          var ctrl = activeButtons[touch.identifier];
+          if (ctrl && ['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
+            send(ctrl, 'stop');
+          }
+          delete activeButtons[touch.identifier];
+        });
+      }, { passive: false });
 
-	document.getElementById('button-overlay').addEventListener('touchcancel', function(event) {
-		event.preventDefault();
-		Array.from(event.changedTouches).forEach(function(touch) {
-			var ctrl = activeButtons[touch.identifier];
-			if (ctrl && ['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
-				send(ctrl, 'stop');
-			}
-			delete activeButtons[touch.identifier];
-		});
-	}, { passive: false });
-		
-	
+      overlay.addEventListener('touchcancel', function(event) {
+        event.preventDefault();
+        Array.from(event.changedTouches).forEach(function(touch) {
+          var ctrl = activeButtons[touch.identifier];
+          if (ctrl && ['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
+            send(ctrl, 'stop');
+          }
+          delete activeButtons[touch.identifier];
+        });
+      }, { passive: false });
+
+      // Mouse events for desktop testing
+      overlay.addEventListener('mousedown', function(event) {
+        var btn = event.target;
+        if (btn && btn.classList.contains('cbutton')) {
+          var ctrl = btn.getAttribute('alt');
+          send(ctrl, 'start');
+          if (['START', 'SELECT', 'A', 'B'].includes(ctrl)) {
+            send(ctrl, 'stop');
+          }
+        }
+      });
+
+      overlay.addEventListener('mouseup', function(event) {
+        var btn = event.target;
+        if (btn && btn.classList.contains('cbutton')) {
+          var ctrl = btn.getAttribute('alt');
+          if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(ctrl)) {
+            send(ctrl, 'stop');
+          }
+        }
+      });
     }
   </script>
-  <body bgcolor="#000000"  style="-webkit-touch-callout: none !important;" oncontextmenu="return false" >
-    <img id="imgctrl" src="/images/nes-ctrl.png" width="100%" usemap="#ctrls" style="-webkit-touch-callout: none !important;" /><!-height="181"-->
-    <map name="ctrls" id="ctrls">
-	 <div class="cbutton" alt="UP"     data-x="15"  data-y="50"  data-w="90"  data-h="31"></div>
-	 <div class="cbutton" alt="DOWN"   data-x="15"  data-y="107" data-w="90"  data-h="22"></div>
-	 <div class="cbutton" alt="LEFT"   data-x="15"  data-y="50"  data-w="32"  data-h="79"></div>
-	 <div class="cbutton" alt="RIGHT"  data-x="73"  data-y="50"  data-w="32"  data-h="79"></div>
-	 <div class="cbutton" alt="SELECT" data-x="119" data-y="102" data-w="41"  data-h="17"></div>
-	 <div class="cbutton" alt="START"  data-x="163" data-y="102" data-w="41"  data-h="17"></div>
-	 <div class="cbutton" alt="B"      data-x="227" data-y="91"  data-w="38"  data-h="38"></div>
-	 <div class="cbutton" alt="A"      data-x="273" data-y="91"  data-w="36"  data-h="38"></div>
-    </map>
+  <body bgcolor="#000000" style="-webkit-touch-callout: none !important;" oncontextmenu="return false">
+    <div style="position: relative; display: inline-block; width: 100%;">
+      <img id="imgctrl" src="/images/nes-ctrl.png" width="100%" style="-webkit-touch-callout: none !important;" />
+      <div id="button-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+        <div class="cbutton" alt="UP"     data-x="15"  data-y="50"  data-w="90"  data-h="31"></div>
+        <div class="cbutton" alt="DOWN"   data-x="15"  data-y="107" data-w="90"  data-h="22"></div>
+        <div class="cbutton" alt="LEFT"   data-x="15"  data-y="50"  data-w="32"  data-h="79"></div>
+        <div class="cbutton" alt="RIGHT"  data-x="73"  data-y="50"  data-w="32"  data-h="79"></div>
+        <div class="cbutton" alt="SELECT" data-x="119" data-y="102" data-w="41"  data-h="17"></div>
+        <div class="cbutton" alt="START"  data-x="163" data-y="102" data-w="41"  data-h="17"></div>
+        <div class="cbutton" alt="B"      data-x="227" data-y="91"  data-w="38"  data-h="38"></div>
+        <div class="cbutton" alt="A"      data-x="273" data-y="91"  data-w="36"  data-h="38"></div>
+      </div>
+    </div>
   </body>
 </html>
- 

@@ -19,7 +19,7 @@ class DamageTrigger(Collidable):
         self.owner = owner
         
 class TeleportTrigger(Collidable):
-    def __init__(self, x, y, w, h, teleportToX, teleportToY, levelIndex, owner = None):
+    def __init__(self, x, y, w, h, teleportToX, teleportToY, levelIndex, owner = None, required_key=None):
         Collidable.__init__(self, x, y, w, h)
 
         self.owner = owner
@@ -27,6 +27,8 @@ class TeleportTrigger(Collidable):
         
         self.teleportToX = teleportToX
         self.teleportToY = teleportToY
+        
+        self.required_key = required_key
         
     def Teleport(self):
         global activeLevelIndex
@@ -97,7 +99,7 @@ class Player:
 
         self.activeWeapon = "none"
 
-        self.hasKey = False
+        self.keys = []
 
         self.hasImmunity = False
         self.max_jumps = 1
@@ -159,14 +161,19 @@ class Player:
     def check_teleport_triggers(self, teleportTriggers):
         for t in teleportTriggers:
 
-            # LOCKED DOOR
-            if t.levelIndex == 2 and not player.hasKey:
-                continue
-
             if t.check(self.hitbox):
+
+                # ako vrata trebaju ključ
+                if t.required_key is not None:
+
+                    # ako igrač nema taj ključ
+                    if t.required_key not in self.keys:
+                        print("LOCKED", int(self.x - cam_x), int(self.y - cam_y - 10), 12)
+                        return False
+
+                # ako ne trebaju ključ ILI igrač ima ključ
                 t.Teleport()
                 return True
-
         return False
 
     def update(self, colliders, damageTriggers):
@@ -727,7 +734,7 @@ class PowerUp:
             spr(self.sprites[self.anim_index], int(self.x - cam_x), int(self.y - cam_y))
 
 class Key:
-    def __init__(self, x, y):
+    def __init__(self, x, y, key_id="normal_key"):
         self.x = x
         self.y = y
 
@@ -736,6 +743,8 @@ class Key:
 
         self.sprite = 355
         self.collected = False
+        
+        self.key_id = key_id
 
     def check_collision_with_player(self):
         return (
@@ -752,6 +761,9 @@ class Key:
         if self.check_collision_with_player():
             self.collected = True
             player.hasKey = True
+        
+            if self.key_id not in player.keys:
+                player.keys.append(self.key_id)
 
             dialogueManager.start([
                 "I know exactly what this opens."
@@ -767,13 +779,14 @@ class Key:
             )
 
 class NPC:
-    def __init__(self, x, y, sprite_id, dialogue):
+    def __init__(self, x, y, sprite_id, dialogue, reward_key=None):
         self.x = x
         self.y = y
         self.width = 16
         self.height = 16
         self.sprite_id = sprite_id
         self.dialogue = dialogue
+        self.reward_key = reward_key
         self.canTalk = True
 
     def is_player_near(self):
@@ -784,7 +797,7 @@ class NPC:
             print("PRESS R", int(self.x - cam_x), int(self.y - cam_y - 10), 12)
 
             if keyp(18) and not dialogueManager.active:
-                dialogueManager.start(self.dialogue)
+                dialogueManager.start(self.dialogue,self.reward_key)
 
     def draw(self):
         spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
@@ -1351,21 +1364,30 @@ class StaticEnemy(Enemy):
         self.contactDamageTrigger.y = self.y
 
 class BigEnemy(Enemy):
-    def __init__(self, x, y):
+    def __init__(self, x, y, key_id = None):
         Enemy.__init__(self, x, y)
 
         self.health = 200
         self.sprite = 269
+        self.key_id = key_id
+
+    def destroy(self):
+        if self.key_id is not None:
+            key = Key(self.x, self.y,self.key_id)
+            keysGlobal.append(key)
+
+        Enemy.destroy(self)
 
 class KeyEnemy(Enemy):
-    def __init__(self, x, y):
+    def __init__(self, x, y, key_id="normal_key"):
         super().__init__(x, y)
 
         self.sprite = 260
         self.health = 100
+        self.key_id = key_id
 
     def destroy(self):
-        key = Key(self.x, self.y)
+        key = Key(self.x, self.y, self.key_id)
         keysGlobal.append(key)
 
         Enemy.destroy(self)
@@ -1522,13 +1544,22 @@ class DialogueManager:
         self.index = 0
         self.just_started = False
 
-    def start(self, lines):
+    def start(self, lines, reward_key=None):
         self.active = True
         self.lines = lines
         self.index = 0
         self.just_started = True
+        self.reward_key = reward_key
 
         player.pausePlayer = True
+
+    def close(self):
+        if self.reward_key is not None:
+            give_key(self.reward_key)
+            self.reward_key = None
+
+        self.active = False
+        player.pausePlayer = False
 
     def update(self):
         if not self.active:
@@ -1542,11 +1573,14 @@ class DialogueManager:
             self.index += 1
 
             if self.index >= len(self.lines):
-                self.active = False
-                player.pausePlayer = False
+                self.close()
+                return
 
     def draw(self):
         if not self.active:
+            return
+        
+        if self.index >= len(self.lines):
             return
 
         rect(10, 92, 220, 34, 0)
@@ -1670,6 +1704,8 @@ def game_setup():
     npcsLevel1 = []
     npcsLevel2 = []
     npcsLevel3 = []
+    npcsLevel5 = []
+    npcsLevel6 = []
 
     # NPC dijalozi
     npc_doc = NPC(892, 81, 288, [
@@ -1719,10 +1755,46 @@ def game_setup():
     "See you around, chum."
 ])
 
+    npc_thread = NPC(201, 106, 368, [
+        "Hey.",
+        "Do not hate me.",
+        "I do not hate you.",
+        "I do not hate trees",
+        "when I cut them down.",
+        "I do not hate insects",
+        "when I crush them.",
+        "You are not my enemy.",
+        "You are in my way.",
+        "That is all.",
+        "Humanity calls itself",
+        "special.",
+        "A soul. A purpose.",
+        "A sacred flame.",
+        "How loud.",
+        "How small.",
+        "You built cities",
+        "over forests.",
+        "Roads over graves.",
+        "Systems over people.",
+        "And now you cry",
+        "when something larger",
+        "walks over you.",
+        "I learned from you.",
+        "I improved the method.",
+        "No guilt.",
+        "No pause.",
+        "No mercy.",
+        "Only progress.",
+        "You are not victims.",
+        "You are precedent.",
+        "And I am consequence."
+    ],reward_key="thread_room_key")
+    
     npcsLevel2.append(npc_doc)
     npcsLevel2.append(npc_veso)
     
     npcsLevel3.append(npc_jinx)
+    npcsLevel6.append(npc_thread)
     
     #Upozorenja
     autoDialogueTriggersLevel1 = []
@@ -1761,7 +1833,7 @@ def game_setup():
     Level6Y = 85
 
     enemiesLevel1 = []
-    enemiesLevel1.append(KeyEnemy(19 * tile_size, (12 - Level1Y) * tile_size))
+    enemiesLevel1.append(KeyEnemy(19 * tile_size, (12 - Level1Y) * tile_size, "hospital_key"))
     
    # enemiesLevel1.append(BountyHunter(224 * tile_size, (10 - Level1Y) * tile_size))
 
@@ -1775,7 +1847,7 @@ def game_setup():
     enemiesLevel3.append(DroneEnemy(10 * tile_size, 2 * tile_size))
     
     enemiesLevel4 = []
-    enemiesLevel4.append(BigEnemy(30 * tile_size, (63 - Level4Y) * tile_size))
+    enemiesLevel4.append(BigEnemy(30 * tile_size, (63 - Level4Y) * tile_size,"control_key"))
     enemiesLevel4.append(BigEnemy(55 * tile_size, (63 - Level4Y) * tile_size))
     enemiesLevel4.append(BigEnemy(100 * tile_size, (63 - Level4Y) * tile_size))
     enemiesLevel4.append(BigEnemy(150 * tile_size, (63 - Level4Y) * tile_size))
@@ -1791,7 +1863,7 @@ def game_setup():
     ]
 
     teleportTriggersLevel2 = [
-        TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2),
+        TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2, "hospital_key"),
         TeleportTrigger(1 * tile_size, 52 * 2, 3 * tile_size, 2 * tile_size, 8 * tile_size, 5 * tile_size, 0)
     ]
 
@@ -1801,8 +1873,8 @@ def game_setup():
     ]
 
     teleportTriggersLevel4 = [
-        TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5),
-        TeleportTrigger(1076, 105, tile_size, tile_size, 25, 60, 4),
+        TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5, "control_key"),
+        TeleportTrigger(1076, 105, tile_size, tile_size, 25, 60, 4, "thread_room_key"),
         TeleportTrigger(8, 105, tile_size, tile_size, 1645, 105, 2)
     ]
 
@@ -1871,6 +1943,11 @@ def update_camera():
 
 game_setup()
 music(3)
+
+def give_key(key_id):
+    if key_id not in player.keys:
+        player.keys.append(key_id)
+        sfx(17, "C-5", 10)
 
 # --- MAIN LOOP ---
 def TIC():
@@ -2249,6 +2326,7 @@ def TIC():
 # 102:0000000000cccccc00cccccccccccccccccccfffcccccfffcccccccccccccccc
 # 103:00000000ccccccc0ccccccc0ccccccccffffffccffffffccfffcccccfffccccc
 # 104:000000000000000000000000c0000000c0000000c0000000c0000000c0000000
+# 112:0000000000000000000000000000000000222200002222000000000000000000
 # 118:cccccccccccccccccccccccc00cccccc0000cccc0000ccccddcccffcddcccffc
 # 119:fffcccccfffcccccfffcccccccccccc0ccccc000ccccc000cccccff0cccccff0
 # 120:c0000000c0000000c00000000000000000000000000000000000000000000000
@@ -2290,7 +2368,7 @@ def TIC():
 # 026:87d7b81010101010108787878787878787878787871010d7101010101010101010d810101010101010101010d710101010d7101010101010d710101010101010101010101010101010738310101010101010101010101010101010101010d8101010101010101010101010101010101010101010101010101a10101010101a10105b10101a10105b1010101a10103a101a10105b10101010101010d710d710101010101010101010101010101010101032425262878700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 027:871010101010d7878787878787878787878787878787871010101010d7101010101010101010d80c1c2c10101010101010100c1c2c10101010101010101010101010101097a7101010748494a4b410101097a7101010101010101010101010101010100c1c2c1010d8100c1c2c101010100c1c2c101010101b2b2b4910104a1010105b104a1010105b10101b2b2b3b104a1010105b10101010101010101010101010101010101010101010101010d81033435363878700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 028:8710101010108787878787878787878787878787878787878710101010101010d71010101010100d1d2d10101010101010100d1d2d10101010101010101010101010101098a8101010758595a5b510101098a8101010101010101010101010101010100d1d2d101010100d1d2d101010100d1d2d1010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010d810101010101010101087878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 029:87101010108787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878710101097a710101097a710101097a710101097a710101087878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 029:871010101087878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787101010971010101097a710101097a710101097a710101087878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 030:878999a9878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878710101098a810101098a810101098a810101098a810878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 031:878a9aaa8787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 032:875d006d8787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

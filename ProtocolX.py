@@ -1873,8 +1873,8 @@ def game_setup():
     ]
 
     teleportTriggersLevel4 = [
-        TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5, "control_key"),
-        TeleportTrigger(1076, 105, tile_size, tile_size, 25, 60, 4, "thread_room_key"),
+        TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5, required_key="control_key"),
+        TeleportTrigger(1076, 105, tile_size, tile_size, 25, 60, 4, required_key="thread_room_key"),
         TeleportTrigger(8, 105, tile_size, tile_size, 1645, 105, 2)
     ]
 
@@ -1900,7 +1900,7 @@ def game_setup():
         Level(1600, 70, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3, autoDialogueTriggersLevel3, invisWallsLevel3),
         Level(8, 90, 240, 17, 0, 51, enemiesLevel4, teleportTriggersLevel4, [], [], []),
         Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, powerupsLevel5, [], []),
-        Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], [], [])
+        Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], npcsLevel6, [])
     ]
     
     keysGlobal = []

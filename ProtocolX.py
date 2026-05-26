@@ -1803,7 +1803,7 @@ def game_setup():
         Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2, autoDialogueTriggersLevel2),
         Level(1600, 70, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3, autoDialogueTriggersLevel3),
         Level(8, 90, 240, 17, 0, 51, enemiesLevel4, teleportTriggersLevel4, [], [], []),
-        Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, [], [], []),
+        Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, powerupsLevel5, [], []),
         Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], [], [])
     ]
     

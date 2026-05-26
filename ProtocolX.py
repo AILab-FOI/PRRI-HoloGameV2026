@@ -725,6 +725,10 @@ class PowerUp:
             return
 
         if self.check_collision_with_player():
+            if self.power_type == "heal" and player.health >= player.maxHealth:
+                return
+            if self.power_type == "health_up" and player.health >= player.maxHealth:
+                return
             self.apply_power()
             self.collected = True
 

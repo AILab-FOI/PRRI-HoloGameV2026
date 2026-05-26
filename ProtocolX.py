@@ -1,3 +1,7 @@
+KRIVI FAJL
+
+
+
 # script: python
 
 # --- COLLISION ---

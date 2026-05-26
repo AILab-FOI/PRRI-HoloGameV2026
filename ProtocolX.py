@@ -185,20 +185,32 @@ class Player:
     def update(self, colliders, damageTriggers):
         if (self.dead or self.pausePlayer):
             return
-        
-        healthRectColor = 0
-        healthRectWidth = int(40 * ((self.health / self.maxHealth)))
-        
+
+        # --- HUD HEALTH ---
+        healthRectColor = 7
+        healthRectWidth = int(50 * (self.health / self.maxHealth))
+
+        if healthRectWidth < 0:
+            healthRectWidth = 0
+
         if self.health > 75:
             healthRectColor = 7
-        if self.health <= 75 and self.health >= 50:
-            healthRectColor = 3
-        if self.health <= 50 and self.health > 25:
-            healthRectColor = 3
-        if player.health <= 25:
+        elif self.health > 50:
+            healthRectColor = 11
+        elif self.health > 25:
+            healthRectColor = 4
+        else:
             healthRectColor = 2
-        
-        rect(10, 10, healthRectWidth, 6, healthRectColor)
+
+        # HUD box
+        rect(4, 4, 72, 16, 0)
+        rectb(4, 4, 72, 16, 4)
+
+        print("HP", 8, 10, 12)
+        rectb(22, 9, 52, 6, 12)
+        rect(23, 10, healthRectWidth, 4, healthRectColor)
+
+
         
         # LEFT / RIGHT
         self.on_ground = self.check_collision(0, 1, colliders)
@@ -1889,6 +1901,28 @@ def draw_menu():
     print("ARROWS - MOVE", 76, 100, 13)
     print("W - JUMP", 94, 110, 13)
     print("B - ATTACK", 88, 120, 13)
+    
+    
+def draw_game_hud():
+    # weapon
+    rect(82, 4, 70, 16, 0)
+    rectb(82, 4, 70, 16, 4)
+
+    if player.activeWeapon == "gun":
+        print("GUN", 88, 10, 12)
+    elif player.activeWeapon == "katana":
+        print("KATANA", 88, 10, 12)
+    else:
+        print("NO WPN", 88, 10, 5)
+
+    # key
+    rect(158, 4, 54, 16, 0)
+    rectb(158, 4, 54, 16, 4)
+
+    if player.hasKey:
+        print("KEY", 166, 10, 11)
+    else:
+        print("NO KEY", 164, 10, 5)
 
 # --- MAIN LOOP ---
 def TIC():
@@ -1901,6 +1935,8 @@ def TIC():
             gameState = "game"
 
         return
+        
+     
 
     cls(0)
     update_camera()
@@ -1973,6 +2009,7 @@ def TIC():
     screenTransition.update()
     
     
+    
     # death
         # death
     if player.dead:
@@ -1991,7 +2028,7 @@ def TIC():
 								
         if keyp(18):
             game_setup()
-            game_state = "menu"
+            gameState = "menu"
             play_music(3)
 
         return

@@ -467,6 +467,8 @@ class RangedWeapon(Gun):
             if self.bigshotTimer >= 180:
                 self.attack(2, 3)
                 self.bigshotTimer = 0
+        else:
+            self.bigshotTimer = 0
 
 class Projectile:
     def __init__(self, x, y, width, height, damage, damageTriggers, hsp = 2, facing = 1, duration = -1, checkCollision = True, drawSelf = True, multiplier = 1, canBreakTiles = False):
@@ -1614,6 +1616,7 @@ def game_setup():
     global screenTransition
     global waterDroppers
     global BossProjectiles
+    global keysGlobal
     BossProjectiles = []
 
     player = Player()
@@ -1692,8 +1695,6 @@ def game_setup():
     "See you around, chum."
 ])
 
-    
-
     npcsLevel2.append(npc_doc)
     npcsLevel2.append(npc_veso)
     
@@ -1762,7 +1763,7 @@ def game_setup():
 
     teleportTriggersLevel1 = [
         TeleportTrigger(4 * tile_size, 16 * 2, 2 * tile_size, 3 * tile_size, 5 * tile_size, 26 * 2, 1),
-        TeleportTrigger(1400,49, 2 * tile_size, 3 * tile_size,218, 97 , 2) #kanal cijev za grad kraj levela
+        TeleportTrigger(175 * tile_size, 5 * tile_size, 2 * tile_size, 3 * tile_size, 218, 97, 2) #kanal cijev za grad kraj levela
     ]
 
     teleportTriggersLevel2 = [
@@ -1799,6 +1800,8 @@ def game_setup():
         Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, [], [], []),
         Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], [], [])
     ]
+    
+    keysGlobal = []
 
     activeLevelIndex = 1
     activeLevelMapIndex = activeLevelIndex

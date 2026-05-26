@@ -1164,7 +1164,7 @@ class ScreenTransition():
     
 
 class Level:
-    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList,npcsList):
+    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList,npcsList,autoDialogueTriggersList):
         self.startX = x
         self.startY = y
 
@@ -1178,7 +1178,7 @@ class Level:
         self.teleportTriggersList = teleportTriggersList
         self.powerupsList = powerupsList
         self.npcsList=npcsList
-        
+        self.autoDialogueTriggersList = autoDialogueTriggersList        
         self.isLoadingLevel = False
         
         self.playerLocationX = 0
@@ -1224,7 +1224,10 @@ class Level:
                 
                 for n in self.npcsList:
                     npcsGlobal.append(n)
+                autoDialogueTriggers.clear()
 
+                for a in self.autoDialogueTriggersList:
+                    autoDialogueTriggers.append(a)
                 for t in teleportTriggersGlobal:
                     if t in teleportTriggersGlobal:
                         teleportTriggersGlobal.remove(t)
@@ -1488,6 +1491,19 @@ class BreakableTile():
         self.brokenTileID = brokenTileID
 
 # --- DIALOGUES ---
+class AutoDialogueTrigger:
+    def __init__(self, x, y, w, h, lines):
+        self.area = Collidable(x, y, w, h)
+        self.lines = lines
+        self.used = False
+
+    def update(self):
+        if self.used:
+            return
+
+        if self.area.check(player.hitbox) and not dialogueManager.active:
+            dialogueManager.start(self.lines)
+            self.used = True
 class DialogueManager:
     def __init__(self):
         self.active = False
@@ -1537,6 +1553,7 @@ tile_size = 8
 
 playerDamageTriggers = []
 enemyDamageTriggers = []
+autoDialogueTriggers= []
 powerupsGlobal = []
 npcsGlobal = []
 keysGlobal = []
@@ -1681,6 +1698,35 @@ def game_setup():
     npcsLevel2.append(npc_veso)
     
     npcsLevel3.append(npc_jinx)
+    
+    #Upozorenja
+    autoDialogueTriggersLevel1 = []
+    autoDialogueTriggersLevel2 = []
+    autoDialogueTriggersLevel3 = []
+
+    keyWarning = AutoDialogueTrigger(
+    1410,73,10,20,
+    [
+        "LOCKED.",
+        "One of those freaks has the key."
+    ]
+    )
+
+    autoDialogueTriggersLevel2.append(keyWarning)
+
+    
+    acidWarning = AutoDialogueTrigger(
+    275,81,20,20,
+    [
+        "That acid looks unstable.",
+        "One step into that and I'm finished.",
+        "Maybe there's something",
+        "that could protect me."
+    ]
+    )
+
+    autoDialogueTriggersLevel1.append(acidWarning)
+
 
     Level1Y = 0
     Level2Y = 17
@@ -1746,12 +1792,12 @@ def game_setup():
     teleportTriggersGlobal = []
 
     levels = [
-        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1, npcsLevel1),
-        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2),
-        Level(1600, 70, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3),
-        Level(8, 90, 240, 17, 0, 51, enemiesLevel4, teleportTriggersLevel4, [], []),
-        Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, [], []),
-        Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], [])
+        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1, npcsLevel1, autoDialogueTriggersLevel1),
+        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2, autoDialogueTriggersLevel2),
+        Level(1600, 70, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3, autoDialogueTriggersLevel3),
+        Level(8, 90, 240, 17, 0, 51, enemiesLevel4, teleportTriggersLevel4, [], [], []),
+        Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, [], [], []),
+        Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], [], [])
     ]
 
     activeLevelIndex = 1
@@ -1857,6 +1903,9 @@ def TIC():
     for npc in npcsGlobal:
         npc.update()
         npc.draw()
+        
+    for t in autoDialogueTriggers:
+        t.update()
     dialogueManager.update()
     dialogueManager.draw()
     

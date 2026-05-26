@@ -420,8 +420,6 @@ class Katana(Gun):
         x = int(self.x - cam_x)
         y = int(self.y - cam_y)
 
-        # 🗡️ uvijek crtamo osnovnu katanu
-        # 🗡️ normalna ili spuštena katana
         if self.attackTimer > 0:
             katana_sprite = 345
         else:
@@ -432,7 +430,6 @@ class Katana(Gun):
         else:
             spr(katana_sprite, x + 3, y, 0, 1, 1, 0, 1, 1)
 
-        # 🔥 SLASH dok traje attack
         if self.attackTimer > 0:
             if self.owner.facing == 1:
                 spr(346, x + 7, y, 0)
@@ -586,7 +583,7 @@ class Projectile:
     
     def draw(self):  
         if not self.destroyed:
-            rect(int(self.x - cam_x), int(self.y - cam_y), int(self.width), int(self.height), 4)
+            spr(265, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1 if self.facing == -1 else 0, 0)
 
     def destroy(self):
         if self in projectiles:
@@ -597,76 +594,39 @@ class Projectile:
         self.drawSelf = False
         self.destroyed = True
 
-class BossProjectile:
-    def __init__(self, x, y, dx):
-        self.x = x
-        self.y = y
-
-        self.dx = dx
-        self.dy = 0
-
-        self.width = 8
-        self.height = 8
-
-        self.sprite = 265
-        self.damage = 20
-
-        self.dead = False
-
-        self.damageTrigger = DamageTrigger(
-            self.x,
-            self.y,
-            self.width,
-            self.height,
-            self.damage
+class BossProjectile(Projectile):
+    def __init__(self, x, y, facing):
+        Projectile.__init__(
+            self,
+            x, y,
+            8, 8,
+            20,
+            playerDamageTriggers,
+            2.6,
+            facing,
+            -1,
+            True,
+            True,
+            1,
+            False
         )
 
-    def check_collision(self, dx, dy, colliders):
-        self.x += dx
-        self.y += dy
-
-        for c in colliders:
-            if c.check(self):
-                self.x -= dx
-                self.y -= dy
-                return True
-
-        self.x -= dx
-        self.y -= dy
-
-        return False
-
-    def update(self, colliders):
-        if (self.dead or dialogueManager.active):
-            return
-
-        if self.check_collision(self.dx, self.dy, colliders):
-            self.destroy()
-            return
-
-        self.x += self.dx
-        self.y += self.dy
-
-        self.damageTrigger.x = self.x
-        self.damageTrigger.y = self.y
-
     def draw(self):
-        if not self.dead:
-            spr(
-                self.sprite,
-                int(self.x - cam_x),
-                int(self.y - cam_y),
-                0
-            )
+        if not self.destroyed:
+            spr(265, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1 if self.facing == -1 else 0, 0)
 
     def destroy(self):
-        self.dead = True
+        self.drawSelf = False
+        self.destroyed = True
 
-        if self.damageTrigger in enemyDamageTriggers:
-            enemyDamageTriggers.remove(self.damageTrigger)
+        if self.contactDamageTrigger in playerDamageTriggers:
+            playerDamageTriggers.remove(self.contactDamageTrigger)
 
-        if self in enemyProjectiles:
-            enemyProjectiles.remove(self)
+        if self in BossProjectiles:
+            BossProjectiles.remove(self)
+
+        if self in projectiles:
+            projectiles.remove(self)
 
 class PowerUp:
     def __init__(self, x, y, sprite_id, power_type):
@@ -678,7 +638,7 @@ class PowerUp:
 
         self.sprites = [sprite_id, sprite_id+1, sprite_id+2] 
         self.anim_timer = 0
-        self.anim_speed = 20   # 20 frameova (TIC-80 radi na 60 FPS)
+        self.anim_speed = 20
         self.anim_index = 0
         self.power_type = power_type
 
@@ -691,7 +651,6 @@ class PowerUp:
                self.y + self.height > player.y
 
     def apply_power(self):
-        # TRAJNI powerup
         if self.power_type == "poison_immunity":
             player.hasImmunity = True
             dialogueManager.start([
@@ -932,8 +891,6 @@ class Enemy:
 
         self.contactDamageTrigger.x = self.x
         self.contactDamageTrigger.y = self.y
-        
-        #print("Enemy health: " + str(self.health), 100, 20, 3)
         
         if self.iframe > 0:
             self.iframe -= 1
@@ -1426,6 +1383,8 @@ class BossEnemy(Enemy):
 
         self.dx = 1
         self.speed = 1
+        self.dx = 0
+        self.facing = -1
 
         self.attackCooldown = 90
         self.attackTimer = 0
@@ -1446,7 +1405,7 @@ class BossEnemy(Enemy):
         )
 
         BossProjectiles.append(proj)
-        enemyDamageTriggers.append(proj.damageTrigger)
+        playerDamageTriggers.append(proj.contactDamageTrigger)
 
         sfx(10, "C-4", 15)
 

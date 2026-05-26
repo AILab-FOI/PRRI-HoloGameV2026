@@ -366,7 +366,7 @@ class Gun:
         self.offset_left_y = 6
 
     def update(self):
-        if self.owner.dead:
+        if self.owner.dead or dialogueManager.active:
             return
         if self.owner.facing == 1:
             self.x = self.owner.x + self.offset_right_x
@@ -411,7 +411,7 @@ class Katana(Gun):
         self.offset_left_y = 5
     
     def draw(self):
-        if self.owner.dead:
+        if self.owner.dead or dialogueManager.active:
             return
 
         x = int(self.x - cam_x)
@@ -461,6 +461,8 @@ class RangedWeapon(Gun):
         enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
     def update(self):
+        if dialogueManager.active: return
+        
         Gun.update(self)
         if key(24):
             self.bigshotTimer += 1
@@ -549,6 +551,8 @@ class Projectile:
                 self.destroy()
     
     def update(self, colliders):
+        if dialogueManager.active: return
+        
         # COLLISION X
         if self.check_collision(self.hsp, 0, colliders):
             self.destroy()
@@ -630,7 +634,7 @@ class BossProjectile:
         return False
 
     def update(self, colliders):
-        if self.dead:
+        if (self.dead or dialogueManager.active):
             return
 
         if self.check_collision(self.dx, self.dy, colliders):
@@ -845,7 +849,7 @@ class Enemy:
         return False
 
     def update(self, colliders, damageTriggers):
-        if (self.dead): return
+        if (self.dead or dialogueManager.active): return
         
         # MOVEMENT
         self.x = self.x + self.dx
@@ -992,7 +996,8 @@ class DroneEnemy(Enemy):
         )
 
     def update(self, colliders, damageTriggers):
-
+        if (self.dead or dialogueManager.active): return
+        
         # LOCK Y pozicija (ne pada)
         self.y = self.y_lock
 
@@ -1316,7 +1321,7 @@ class StaticEnemy(Enemy):
         self.contactDamageTrigger.damage = 15
 
     def update(self, colliders, damageTriggers):
-        if self.dead:
+        if (self.dead or dialogueManager.active):
             return
 
         # GRAVITY
@@ -1401,7 +1406,7 @@ class BossEnemy(Enemy):
         sfx(10, "C-4", 15)
 
     def update(self, colliders, damageTriggers):
-        if self.dead:
+        if (self.dead or dialogueManager.active):
             return
 
         # MOVEMENT

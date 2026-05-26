@@ -19,7 +19,7 @@ class DamageTrigger(Collidable):
         self.owner = owner
         
 class TeleportTrigger(Collidable):
-    def __init__(self, x, y, w, h, teleportToX, teleportToY, levelIndex, owner = None):
+    def __init__(self, x, y, w, h, teleportToX, teleportToY, levelIndex, owner = None, required_key=None):
         Collidable.__init__(self, x, y, w, h)
 
         self.owner = owner
@@ -27,6 +27,8 @@ class TeleportTrigger(Collidable):
         
         self.teleportToX = teleportToX
         self.teleportToY = teleportToY
+
+        self.required_key = required_key
         
     def Teleport(self):
         global activeLevelIndex
@@ -97,7 +99,7 @@ class Player:
 
         self.activeWeapon = "none"
 
-        self.hasKey = False
+        self.keys = []
 
         self.hasImmunity = False
         self.max_jumps = 1
@@ -159,15 +161,21 @@ class Player:
     def check_teleport_triggers(self, teleportTriggers):
         for t in teleportTriggers:
 
-            # LOCKED DOOR
-            if t.levelIndex == 2 and not player.hasKey:
-                continue
-
             if t.check(self.hitbox):
+
+                # ako vrata trebaju ključ
+                if t.required_key is not None:
+
+                    # ako igrač nema taj ključ
+                    if t.required_key not in self.keys:
+                        print("LOCKED", int(self.x - cam_x), int(self.y - cam_y - 10), 12)
+                        return False
+
+                # ako ne trebaju ključ ILI igrač ima ključ
                 t.Teleport()
                 return True
-
         return False
+
 
     def update(self, colliders, damageTriggers):
         if (self.dead or self.pausePlayer):
@@ -185,7 +193,7 @@ class Player:
         if player.health <= 25:
             healthRectColor = 2
         
-        rect(10, 10, healthRectWidth, 6, healthRectColor)
+        #rect(10, 10, healthRectWidth, 6, healthRectColor)
         
         # LEFT / RIGHT
         self.on_ground = self.check_collision(0, 1, colliders)
@@ -366,7 +374,7 @@ class Gun:
         self.offset_left_y = 6
 
     def update(self):
-        if self.owner.dead:
+        if self.owner.dead or dialogueManager.active:
             return
         if self.owner.facing == 1:
             self.x = self.owner.x + self.offset_right_x
@@ -411,7 +419,7 @@ class Katana(Gun):
         self.offset_left_y = 5
     
     def draw(self):
-        if self.owner.dead:
+        if self.owner.dead or dialogueManager.active:
             return
 
         x = int(self.x - cam_x)
@@ -461,12 +469,16 @@ class RangedWeapon(Gun):
         enemyDamageTriggers.append(projectile.contactDamageTrigger)
 
     def update(self):
+        if dialogueManager.active: return
+        
         Gun.update(self)
         if key(24):
             self.bigshotTimer += 1
             if self.bigshotTimer >= 180:
                 self.attack(2, 3)
                 self.bigshotTimer = 0
+        else:
+            self.bigshotTimer = 0
 
 class Projectile:
     def __init__(self, x, y, width, height, damage, damageTriggers, hsp = 2, facing = 1, duration = -1, checkCollision = True, drawSelf = True, multiplier = 1, canBreakTiles = False):
@@ -547,6 +559,8 @@ class Projectile:
                 self.destroy()
     
     def update(self, colliders):
+        if dialogueManager.active: return
+        
         # COLLISION X
         if self.check_collision(self.hsp, 0, colliders):
             self.destroy()
@@ -628,7 +642,7 @@ class BossProjectile:
         return False
 
     def update(self, colliders):
-        if self.dead:
+        if (self.dead or dialogueManager.active):
             return
 
         if self.check_collision(self.dx, self.dy, colliders):
@@ -727,7 +741,7 @@ class PowerUp:
             spr(self.sprites[self.anim_index], int(self.x - cam_x), int(self.y - cam_y))
 
 class Key:
-    def __init__(self, x, y):
+    def __init__(self, x, y,key_id="normal_key"):
         self.x = x
         self.y = y
 
@@ -736,6 +750,8 @@ class Key:
 
         self.sprite = 355
         self.collected = False
+
+        self.key_id = key_id
 
     def check_collision_with_player(self):
         return (
@@ -751,7 +767,9 @@ class Key:
 
         if self.check_collision_with_player():
             self.collected = True
-            player.hasKey = True
+        
+            if self.key_id not in player.keys:
+                player.keys.append(self.key_id)
 
     def draw(self):
         if not self.collected:
@@ -763,13 +781,14 @@ class Key:
             )
 
 class NPC:
-    def __init__(self, x, y, sprite_id, dialogue):
+    def __init__(self, x, y, sprite_id, dialogue, reward_key=None):
         self.x = x
         self.y = y
         self.width = 16
         self.height = 16
         self.sprite_id = sprite_id
         self.dialogue = dialogue
+        self.reward_key = reward_key
         self.canTalk = True
 
     def is_player_near(self):
@@ -780,7 +799,7 @@ class NPC:
             print("PRESS R", int(self.x - cam_x), int(self.y - cam_y - 10), 12)
 
             if keyp(18) and not dialogueManager.active:
-                dialogueManager.start(self.dialogue)
+                dialogueManager.start(self.dialogue,self.reward_key)
 
     def draw(self):
         spr(self.sprite_id, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
@@ -843,7 +862,7 @@ class Enemy:
         return False
 
     def update(self, colliders, damageTriggers):
-        if (self.dead): return
+        if (self.dead or dialogueManager.active): return
         
         # MOVEMENT
         self.x = self.x + self.dx
@@ -990,7 +1009,8 @@ class DroneEnemy(Enemy):
         )
 
     def update(self, colliders, damageTriggers):
-
+        if (self.dead or dialogueManager.active): return
+        
         # LOCK Y pozicija (ne pada)
         self.y = self.y_lock
 
@@ -1164,7 +1184,7 @@ class ScreenTransition():
     
 
 class Level:
-    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList,npcsList):
+    def __init__(self, x, y, sizeX, sizeY, mapX, mapY, enemiesList, teleportTriggersList, powerupsList,npcsList,autoDialogueTriggersList):
         self.startX = x
         self.startY = y
 
@@ -1178,7 +1198,7 @@ class Level:
         self.teleportTriggersList = teleportTriggersList
         self.powerupsList = powerupsList
         self.npcsList=npcsList
-        
+        self.autoDialogueTriggersList = autoDialogueTriggersList        
         self.isLoadingLevel = False
         
         self.playerLocationX = 0
@@ -1224,7 +1244,10 @@ class Level:
                 
                 for n in self.npcsList:
                     npcsGlobal.append(n)
+                autoDialogueTriggers.clear()
 
+                for a in self.autoDialogueTriggersList:
+                    autoDialogueTriggers.append(a)
                 for t in teleportTriggersGlobal:
                     if t in teleportTriggersGlobal:
                         teleportTriggersGlobal.remove(t)
@@ -1311,7 +1334,7 @@ class StaticEnemy(Enemy):
         self.contactDamageTrigger.damage = 15
 
     def update(self, colliders, damageTriggers):
-        if self.dead:
+        if (self.dead or dialogueManager.active):
             return
 
         # GRAVITY
@@ -1339,21 +1362,32 @@ class StaticEnemy(Enemy):
         self.contactDamageTrigger.y = self.y
 
 class BigEnemy(Enemy):
-    def __init__(self, x, y):
+    def __init__(self, x, y,key_id=None):
         Enemy.__init__(self, x, y)
 
         self.health = 200
         self.sprite = 269
+        self.key_id = key_id
+
+    def destroy(self):
+        if self.key_id is not None:
+            key = Key(self.x, self.y,self.key_id)
+            keysGlobal.append(key)
+
+        Enemy.destroy(self)
+
+        
 
 class KeyEnemy(Enemy):
-    def __init__(self, x, y):
+    def __init__(self, x, y, key_id="normal_key"):
         super().__init__(x, y)
 
         self.sprite = 260
         self.health = 100
+        self.key_id = key_id
 
     def destroy(self):
-        key = Key(self.x, self.y)
+        key = Key(self.x, self.y,self.key_id)
         keysGlobal.append(key)
 
         Enemy.destroy(self)
@@ -1396,7 +1430,7 @@ class BossEnemy(Enemy):
         sfx(10, "C-4", 15)
 
     def update(self, colliders, damageTriggers):
-        if self.dead:
+        if (self.dead or dialogueManager.active):
             return
 
         # MOVEMENT
@@ -1488,20 +1522,42 @@ class BreakableTile():
         self.brokenTileID = brokenTileID
 
 # --- DIALOGUES ---
+class AutoDialogueTrigger:
+    def __init__(self, x, y, w, h, lines):
+        self.area = Collidable(x, y, w, h)
+        self.lines = lines
+        self.used = False
+
+    def update(self):
+        if self.used:
+            return
+
+        if self.area.check(player.hitbox) and not dialogueManager.active:
+            dialogueManager.start(self.lines)
+            self.used = True
 class DialogueManager:
     def __init__(self):
         self.active = False
         self.lines = []
         self.index = 0
         self.just_started = False
+        self.reward_key = None
 
-    def start(self, lines):
+    def start(self, lines, reward_key=None):
         self.active = True
         self.lines = lines
         self.index = 0
         self.just_started = True
-
+        self.reward_key = reward_key
         player.pausePlayer = True
+
+    def close(self):
+        if self.reward_key is not None:
+            give_key(self.reward_key)
+            self.reward_key = None
+
+        self.active = False
+        player.pausePlayer = False
 
     def update(self):
         if not self.active:
@@ -1515,11 +1571,14 @@ class DialogueManager:
             self.index += 1
 
             if self.index >= len(self.lines):
-                self.active = False
-                player.pausePlayer = False
+                self.close()
+                return
 
     def draw(self):
         if not self.active:
+            return
+
+        if self.index >= len(self.lines):
             return
 
         rect(10, 92, 220, 34, 0)
@@ -1537,6 +1596,7 @@ tile_size = 8
 
 playerDamageTriggers = []
 enemyDamageTriggers = []
+autoDialogueTriggers= []
 powerupsGlobal = []
 npcsGlobal = []
 keysGlobal = []
@@ -1597,6 +1657,7 @@ def game_setup():
     global screenTransition
     global waterDroppers
     global BossProjectiles
+    global keysGlobal
     BossProjectiles = []
 
     player = Player()
@@ -1626,6 +1687,8 @@ def game_setup():
     npcsLevel1 = []
     npcsLevel2 = []
     npcsLevel3 = []
+    npcsLevel5 = []
+    npcsLevel6 = []
 
     # NPC dijalozi
     npc_doc = NPC(892, 81, 288, [
@@ -1675,12 +1738,77 @@ def game_setup():
     "See you around, chum."
 ])
 
+    npc_thread = NPC(201, 106, 368, [
+    "Hey.",
+    "Do not hate me.",
+    "I do not hate you.",
+    "I do not hate trees",
+    "when I cut them down.",
+    "I do not hate insects",
+    "when I crush them.",
+    "You are not my enemy.",
+    "You are in my way.",
+    "That is all.",
+    "Humanity calls itself",
+    "special.",
+    "A soul. A purpose.",
+    "A sacred flame.",
+    "How loud.",
+    "How small.",
+    "You built cities",
+    "over forests.",
+    "Roads over graves.",
+    "Systems over people.",
+    "And now you cry",
+    "when something larger",
+    "walks over you.",
+    "I learned from you.",
+    "I improved the method.",
+    "No guilt.",
+    "No pause.",
+    "No mercy.",
+    "Only progress.",
+    "You are not victims.",
+    "You are precedent.",
+    "And I am consequence."
+],reward_key="thread_room_key")
     
 
     npcsLevel2.append(npc_doc)
     npcsLevel2.append(npc_veso)
     
     npcsLevel3.append(npc_jinx)
+
+    npcsLevel6.append(npc_thread)
+    
+    #Upozorenja
+    autoDialogueTriggersLevel1 = []
+    autoDialogueTriggersLevel2 = []
+    autoDialogueTriggersLevel3 = []
+
+    keyWarning = AutoDialogueTrigger(
+    1410,73,10,20,
+    [
+        "LOCKED.",
+        "One of those freaks has the key."
+    ]
+    )
+
+    autoDialogueTriggersLevel2.append(keyWarning)
+
+    
+    acidWarning = AutoDialogueTrigger(
+    275,81,20,20,
+    [
+        "That acid looks unstable.",
+        "One step into that and I'm finished.",
+        "Maybe there's something",
+        "that could protect me."
+    ]
+    )
+
+    autoDialogueTriggersLevel1.append(acidWarning)
+
 
     Level1Y = 0
     Level2Y = 17
@@ -1690,7 +1818,7 @@ def game_setup():
     Level6Y = 85
 
     enemiesLevel1 = []
-    enemiesLevel1.append(KeyEnemy(19 * tile_size, (12 - Level1Y) * tile_size))
+    enemiesLevel1.append(KeyEnemy(19 * tile_size, (12 - Level1Y) * tile_size, "hospital_key"))
     
    # enemiesLevel1.append(BountyHunter(224 * tile_size, (10 - Level1Y) * tile_size))
 
@@ -1704,7 +1832,7 @@ def game_setup():
     enemiesLevel3.append(DroneEnemy(10 * tile_size, 2 * tile_size))
     
     enemiesLevel4 = []
-    enemiesLevel4.append(BigEnemy(30 * tile_size, (63 - Level4Y) * tile_size))
+    enemiesLevel4.append(BigEnemy(30 * tile_size, (63 - Level4Y) * tile_size,"control_key"))
     enemiesLevel4.append(BigEnemy(55 * tile_size, (63 - Level4Y) * tile_size))
     enemiesLevel4.append(BigEnemy(100 * tile_size, (63 - Level4Y) * tile_size))
     enemiesLevel4.append(BigEnemy(150 * tile_size, (63 - Level4Y) * tile_size))
@@ -1716,11 +1844,11 @@ def game_setup():
 
     teleportTriggersLevel1 = [
         TeleportTrigger(4 * tile_size, 16 * 2, 2 * tile_size, 3 * tile_size, 5 * tile_size, 26 * 2, 1),
-        TeleportTrigger(1400,49, 2 * tile_size, 3 * tile_size,218, 97 , 2) #kanal cijev za grad kraj levela
+        TeleportTrigger(175 * tile_size, 5 * tile_size, 2 * tile_size, 3 * tile_size, 218, 97, 2) #kanal cijev za grad kraj levela
     ]
 
     teleportTriggersLevel2 = [
-        TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2),
+        TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2, required_key="hospital_key"),
         TeleportTrigger(1 * tile_size, 52 * 2, 3 * tile_size, 2 * tile_size, 8 * tile_size, 5 * tile_size, 0)
     ]
 
@@ -1730,8 +1858,8 @@ def game_setup():
     ]
 
     teleportTriggersLevel4 = [
-        TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5),
-        TeleportTrigger(1076, 105, tile_size, tile_size, 25, 60, 4),
+        TeleportTrigger(584, 105, tile_size, tile_size, 38, 105, 5, required_key="control_key"),
+        TeleportTrigger(1076, 105, tile_size, tile_size, 25, 60, 4, required_key="thread_room_key"),
         TeleportTrigger(8, 105, tile_size, tile_size, 1645, 105, 2)
     ]
 
@@ -1747,13 +1875,15 @@ def game_setup():
     teleportTriggersGlobal = []
 
     levels = [
-        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1, npcsLevel1),
-        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2),
-        Level(1600, 70, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3),
-        Level(8, 90, 240, 17, 0, 51, enemiesLevel4, teleportTriggersLevel4, [], []),
-        Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, [], []),
-        Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], [])
+        Level(8 * tile_size, 7 * tile_size, 240, 17, 0, 0, enemiesLevel1, teleportTriggersLevel1, powerupsLevel1, npcsLevel1, autoDialogueTriggersLevel1),
+        Level(75 * tile_size, 26 * 2, 180, 17, 0, 17, enemiesLevel2, teleportTriggersLevel2, powerupsLevel2, npcsLevel2, autoDialogueTriggersLevel2),
+        Level(1600, 70, 240, 17, 0, 34, enemiesLevel3, teleportTriggersLevel3, powerupsLevel3, npcsLevel3, autoDialogueTriggersLevel3),
+        Level(8, 90, 240, 17, 0, 51, enemiesLevel4, teleportTriggersLevel4, [], [], []),
+        Level(8, 90, 240, 17, 0, 68, [], teleportTriggersLevel5, powerupsLevel5, [], []),
+        Level(8, 90, 60, 17, 0, 85, [], teleportTriggersLevel6, [], npcsLevel6, [])
     ]
+    
+    keysGlobal = []
 
     activeLevelIndex = 1
     activeLevelMapIndex = activeLevelIndex
@@ -1793,6 +1923,11 @@ def update_camera():
 
 game_setup()
 music(3)
+
+def give_key(key_id):
+    if key_id not in player.keys:
+        player.keys.append(key_id)
+        sfx(17, "C-5", 10)
 
 # --- MAIN LOOP ---
 def TIC():
@@ -1858,6 +1993,9 @@ def TIC():
     for npc in npcsGlobal:
         npc.update()
         npc.draw()
+        
+    for t in autoDialogueTriggers:
+        t.update()
     dialogueManager.update()
     dialogueManager.draw()
     
@@ -2167,6 +2305,7 @@ def TIC():
 # 102:0000000000cccccc00cccccccccccccccccccfffcccccfffcccccccccccccccc
 # 103:00000000ccccccc0ccccccc0ccccccccffffffccffffffccfffcccccfffccccc
 # 104:000000000000000000000000c0000000c0000000c0000000c0000000c0000000
+# 112:0000000000000000000000000000000000222200002222000000000000000000
 # 118:cccccccccccccccccccccccc00cccccc0000cccc0000ccccddcccffcddcccffc
 # 119:fffcccccfffcccccfffcccccccccccc0ccccc000ccccc000cccccff0cccccff0
 # 120:c0000000c0000000c00000000000000000000000000000000000000000000000
@@ -2199,16 +2338,16 @@ def TIC():
 # 017:878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787f0f0f0f0f0f0f0f087878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 018:878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787f0f0f0f9f9f0f0f087878787878787878787878787871929292929292929292929292929292929292929292929398787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 019:87d7b71010b71010b71010b71010b71010b710d7b71010b71010b71087878787101010b9c9101010108787878787878787878710101010108b9b87878787b710b710b710b710b710f0f0f0f9f9f0f0f010b7b7b7b7b7b7b78787878787871a8b9bb710b710b7108b9b10b710b7b9c9b710b7b78b9b3a8787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 020:8710b81010b81010b81010b81010b81010b81010b81010b81010b81087878787101010bacac910d710d7878787878787878710101010108b9b9c87878787b810b810b810b810b810f0f9f9f9f9f9f9f010b8b8b8b8b8b8b88787878787871a8c9cb710b710b7108c9c10b710b7bacab710b7108c9c3a87871010101010101010101010101010101010101010101010101010101010101010b7101010b71010c71010c71010c71010b71087878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 021:8710b710d7b71010b7d71010d8101010d7101010b71010b71010b710878787871010101010cac91010101087878787878710d71010108b9b9c1087878787b710b710b710b710b710f0f9f9f9f9f9f9f010b7b7b7b7b7b7b787878787c7c71ab9c910108b9b10b9c9c7108b9b1010c78b9bb7b9c9b73a10c71929294910192929293910192929391019292929391019292929391010101010b8101010b81010c81010c81010c81010b81087878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 022:8710b81010b71010b81010101010101010101010b81010b71010b8108787878797a7101010bad9e9101010108787878710101010106b7b9c10108787878710101010101010101010f0f0f0f9f9f0f0f0101010101010101087878787c7c71abaca10b78c9c10bacac7108c9c10b7c78c9c10bacab73a10c71a101010101a1010103a101a10103a101a1010103a101a1010103a1010101010b71010d8b710d7c71010c7d710c71010b71010108787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 023:8710b71010b710101010101010d7101010101010101010b81010b7108787878798a810101010daea10d8101097a797a7d710d7d8106c7c1010108787878710101010101010101010f0f0f0f9f9f0f0f0101010101010101087878787c8c81a10c810b7c81010c810c810c810c8b7c810c810c8b7b73a10c81a101010104b0b2b2b3b101a10103a104b0b29293b104b0b29293b1010101010b8101010b81010c8d810c81010c810d8b81010101010878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 024:8710b81010b810101010101010878787871010101010d8101010b7108787878787878787871010101010101098a898a8101010101010101010108787878710101010101010101010f0f0f0f0f0f0f0f010101010101010108787878710101b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b3b101059294910105a0a101010101a10103a105a0a101010105a0a1010101010101010b7101010b7d710c71010c71010c71010b7d810101010101030405060870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 025:8710b710101010101010d7878787878787878710d71010101010b810871010871010101010d710d71010101087878787101010101010d710101087101087101010101010101010101010101010101010101010101010101087101087101010101010101010101010101010101010101010d81010101010101a101010101a105b1010101a10103a101a105b1010101a105b10101010101010b8101010b81010c8d810c8d710c81010b81010d810d8101031415161870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 026:87d7b81010101010108787878787878787878787871010d7101010101010101010d810101010101010101010d710101010d7101010101010d710101010101010101010101010101010738310101010101010101010101010101010101010d8101010101010101010101010101010101010101010101010101a101010101a10105b10101a10103a101a10105b10101a10105b101010101010101010d710d710101010101010101010101010101010101032425262878700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 027:871010101010d7878787878787878787878787878787871010101010d7101010101010101010d80c1c2c10101010101010100c1c2c10101010101010101010101010101097a7101010748494a4b410101097a7101010101010101010101010101010100c1c2c1010d8100c1c2c101010100c1c2c101010101b2b2b49104a1010105b101b2b2b3b104a1010105b104a1010105b101010101010101010101010101010101010101010101010101010d81033435363878700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 020:8710b81010b81010b81010b81010b81010b81010b81010b81010b81087878787101010bacac910d710d7878787878787878710101010108b9b9c87878787b810b810b810b810b810f0f9f9f9f9f9f9f010b8b8b8b8b8b8b88787878787871a8c9cb710b710b7108c9c10b710b7bacab710b7108c9c3a8787101010101010101010101010101010101010101010101010101010101010101010101010b71010c71010c71010c71010b71087878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 021:8710b710d7b71010b7d71010d8101010d7101010b71010b71010b710878787871010101010cac91010101087878787878710d71010108b9b9c1087878787b710b710b710b710b710f0f9f9f9f9f9f9f010b7b7b7b7b7b7b787878787c7c71ab9c910108b9b10b9c9c7108b9b1010c78b9bb7b9c9b73a10c7192929491010192929293910192929293910101929293910192929293910101010101010b81010c81010c81010c81010b81087878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 022:8710b81010b71010b81010101010101010101010b81010b71010b8108787878797a7101010bad9e9101010108787878710101010106b7b9c10108787878710101010101010101010f0f0f0f9f9f0f0f0101010101010101087878787c7c71abaca10b78c9c10bacac7108c9c10b7c78c9c10bacab73a10c71a10101010101a1010103a101a1010103a10101a10103a101a1010103a101010101010d8b710d7c71010c7d710c71010b71010108787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 023:8710b71010b710101010101010d7101010101010101010b81010b7108787878798a810101010daea10d8101097a797a7d710d7d8106c7c1010108787878710101010101010101010f0f0f0f9f9f0f0f0101010101010101087878787c8c81a10c810b7c81010c810c810c810c8b7c810c810c8b7b73a10c81a10101010104b0b29293b104b0b29293b10101a10103a104b0b29293b10101010101010b81010c8d810c81010c810d8b81010101010878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 024:8710b81010b810101010101010878787871010101010d8101010b7108787878787878787871010101010101098a898a8101010101010101010108787878710101010101010101010f0f0f0f0f0f0f0f010101010101010108787878710101b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b3b10105929491010105a0a101010105a0a10101010101a10103a105a0a10101010101010101010b7d710c71010c71010c71010b7d810101010101030405060870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 025:8710b710101010101010d7878787878787878710d71010101010b810871010871010101010d710d71010101087878787101010101010d710101087101087101010101010101010101010101010101010101010101010101087101087101010101010101010101010101010101010101010d81010101010101a10101010101a105b1010101a105b101010101a10103a101a105b101010101010101010b81010c8d810c8d710c81010b81010d810d8101031415161870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 026:87d7b81010101010108787878787878787878787871010d7101010101010101010d810101010101010101010d710101010d7101010101010d710101010101010101010101010101010738310101010101010101010101010101010101010d8101010101010101010101010101010101010101010101010101a10101010101a10105b10101a10105b1010101a10103a101a10105b10101010101010d710d710101010101010101010101010101010101032425262878700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 027:871010101010d7878787878787878787878787878787871010101010d7101010101010101010d80c1c2c10101010101010100c1c2c10101010101010101010101010101097a7101010748494a4b410101097a7101010101010101010101010101010100c1c2c1010d8100c1c2c101010100c1c2c101010101b2b2b4910104a1010105b104a1010105b10101b2b2b3b104a1010105b10101010101010101010101010101010101010101010101010d81033435363878700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 028:8710101010108787878787878787878787878787878787878710101010101010d71010101010100d1d2d10101010101010100d1d2d10101010101010101010101010101098a8101010758595a5b510101098a8101010101010101010101010101010100d1d2d101010100d1d2d101010100d1d2d1010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010d810101010101010101087878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-# 029:87101010108787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878710101097a710101097a710101097a710101097a710101087878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# 029:871010101087878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787101010971010101097a710101097a710101097a710101087878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 030:878999a9878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878710101098a810101098a810101098a810101098a810878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 031:878a9aaa8787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 # 032:875d006d8787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787870000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

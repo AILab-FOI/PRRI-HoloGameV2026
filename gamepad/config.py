@@ -40,7 +40,7 @@ ProtocolX = {
             'DOWN': 'F',
             'LEFT': 'A',
             'RIGHT': 'D',
-            'SELECT': 'F',
+            'SELECT': 'SHIFT',
             'START': 'R',
             'A': 'X',
             'B': 'W'

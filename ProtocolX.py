@@ -619,7 +619,7 @@ class Projectile:
     
     def draw(self):  
         if not self.destroyed:
-            spr(265, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1 if self.facing == -1 else 0, 0)
+            spr(264, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1 if self.facing == -1 else 0, 0)
 
     def destroy(self):
         if self in projectiles:
@@ -1458,8 +1458,6 @@ class BossEnemy(Enemy):
         BossProjectiles.append(proj)
         playerDamageTriggers.append(proj.contactDamageTrigger)
 
-        sfx(10, "C-4", 15)
-
     def update(self, colliders, damageTriggers):
         if self.dead:
             return
@@ -1911,7 +1909,7 @@ def game_setup():
     ]
 
     teleportTriggersLevel2 = [
-        TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2, "hospital_key"),
+        TeleportTrigger(176 * tile_size, 31 * 2, 4 * tile_size, 4 * tile_size, 6 * tile_size, 38 * 2, 2, required_key="hospital_key"),
         TeleportTrigger(1 * tile_size, 52 * 2, 3 * tile_size, 2 * tile_size, 8 * tile_size, 5 * tile_size, 0)
     ]
 

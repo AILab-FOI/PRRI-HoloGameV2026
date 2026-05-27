@@ -186,7 +186,7 @@ class Player:
 
                     # ako igrač nema taj ključ
                     if t.required_key not in self.keys:
-                        print("LOCKED", int(self.x - cam_x), int(self.y - cam_y - 10), 12)
+                        print("LOCKED", int(self.x - cam_x), int(self.y - cam_y - 10), 2)
                         return False
 
                 # ako ne trebaju ključ ILI igrač ima ključ
@@ -197,6 +197,8 @@ class Player:
     def update(self, colliders, damageTriggers):
         if (self.dead or self.pausePlayer):
             return
+        global invisWallsGlobal
+        colliders += invisWallsGlobal
 
         # --- HUD HEALTH ---
         healthRectColor = 7
@@ -1996,6 +1998,10 @@ def draw_menu():
     print("PROTOCOL X", 82, 35, 12)
     print("A CYBERPUNK PLATFORMER", 58, 50, 4)
 
+def give_key(key_id):
+    if key_id not in player.keys:
+        player.keys.append(key_id)
+        sfx(17, "C-5", 10)
     if time() // 500 % 2 == 0:
         print("PRESS W TO START", 70, 80, 11)
 

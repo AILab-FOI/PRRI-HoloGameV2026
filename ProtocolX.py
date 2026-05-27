@@ -1652,6 +1652,99 @@ waterDroppers = [
     WaterDropper(181, 8, 8, 26, 5, 200, 60)
 ]
 
+doc_dialogue=[
+    "I need to scan you for your ID.",
+    "Scanning...",
+    "Huh... no ID.",
+    "Let me try again.",
+    "...",
+    "Government gear still",
+    "doesn't work in 2058.",
+    "...",
+    "Sir, stay right there.",
+    "I'm calling the Entity Enforcers.",
+    "They'll handle you.",
+    "Sir, put the weapon down.",
+    "Unknown entity in the hospital.",
+    "INITIATE PROTOCOL X!!!",
+    "I REPEAT, INITIATE PROTOCOL X!"
+]
+
+veso_dialogue=[
+    "Woah!!!",
+    "You just woke up broo!",
+    "That's crazy brooo!",
+    "Hi, I'm Dank btw!",
+    "Those back-alley docs gave me some",
+    "crazy eye infection.",
+    "Should've gone to a real doc.",
+    "Controls:",
+    "Arrows - move",
+    "A - jump",
+    "B - combat",
+    "see you around broo!!"
+]
+
+jinx_dialogue=[
+    "01101000 01100101 01111001",
+    "...",
+    "wait... translating",
+    "So it's really you.",
+    "The guy from the billboard.",
+    "Snark...",
+    "You survived being Protocol X-ed.",
+    "Most don't last a week.",
+    "Impressive.",
+    "See you around, chum."
+]
+
+thread_dialogue=[
+    "Hey.",
+    "Do not hate me.",
+    "I do not hate you.",
+    "I do not hate trees",
+    "when I cut them down.",
+    "I do not hate insects",
+    "when I crush them.",
+    "You are not my enemy.",
+    "You are in my way.",
+    "That is all.",
+    "Humanity calls itself",
+    "special.",
+    "A soul. A purpose.",
+    "A sacred flame.",
+    "How loud.",
+    "How small.",
+    "You built cities",
+    "over forests.",
+    "Roads over graves.",
+    "Systems over people.",
+    "And now you cry",
+    "when something larger",
+    "walks over you.",
+    "I learned from you.",
+    "I improved the method.",
+    "No guilt.",
+    "No pause.",
+    "No mercy.",
+    "Only progress.",
+    "You are not victims.",
+    "You are precedent.",
+    "And I am consequence."
+]
+
+key_warning_dialogue=[
+    "LOCKED.",
+    "One of those freaks has the key."
+]
+
+acid_warning_dialogue=[
+    "That acid looks unstable.",
+    "One step into that and I'm finished.",
+    "Maybe there's something",
+    "that could protect me."
+]
+
 def game_setup():
     global player, gun, katana
     global enemiesGlobal
@@ -1703,87 +1796,13 @@ def game_setup():
     npcsLevel6 = []
 
     # NPC dijalozi
-    npc_doc = NPC(892, 81, 288, [
-        "I need to scan you for your ID.",
-        "Scanning...",
-        "Huh... no ID.",
-        "Let me try again.",
-        "...",
-        "Government gear still",
-        "doesn't work in 2058.",
-        "...",
-        "Sir, stay right there.",
-        "I'm calling the Entity Enforcers.",
-        "They'll handle you.",
-        "Sir, put the weapon down.",
-        "Unknown entity in the hospital.",
-        "INITIATE PROTOCOL X!!!",
-        "I REPEAT, INITIATE PROTOCOL X!"
-    ])
+    npc_doc = NPC(892, 81, 288, doc_dialogue)
 
-    npc_veso = NPC(520, 81, 298, [
-        "Woah!!!",
-        "You just woke up broo!",
-        "That's crazy brooo!",
-        "Hi, I'm Dank btw!",
-        "Those back-alley docs gave me some",
-        "crazy eye infection.",
-        "Should've gone to a real doc.",
-        "Controls:",
-        "Arrows - move",
-        "A - jump",
-        "B - combat",
-        "see you around broo!!"
+    npc_veso = NPC(520, 81, 298, veso_dialogue)
 
-    ])
+    npc_jinx = NPC(286, 112, 294, jinx_dialogue)
 
-    npc_jinx = NPC(286, 112, 294, [
-    "01101000 01100101 01111001",
-    "...",
-    "wait... translating",
-    "So it's really you.",
-    "The guy from the billboard.",
-    "Snark...",
-    "You survived being Protocol X-ed.",
-    "Most don't last a week.",
-    "Impressive.",
-    "See you around, chum."
-])
-
-    npc_thread = NPC(201, 106, 368, [
-        "Hey.",
-        "Do not hate me.",
-        "I do not hate you.",
-        "I do not hate trees",
-        "when I cut them down.",
-        "I do not hate insects",
-        "when I crush them.",
-        "You are not my enemy.",
-        "You are in my way.",
-        "That is all.",
-        "Humanity calls itself",
-        "special.",
-        "A soul. A purpose.",
-        "A sacred flame.",
-        "How loud.",
-        "How small.",
-        "You built cities",
-        "over forests.",
-        "Roads over graves.",
-        "Systems over people.",
-        "And now you cry",
-        "when something larger",
-        "walks over you.",
-        "I learned from you.",
-        "I improved the method.",
-        "No guilt.",
-        "No pause.",
-        "No mercy.",
-        "Only progress.",
-        "You are not victims.",
-        "You are precedent.",
-        "And I am consequence."
-    ],reward_key="thread_room_key")
+    npc_thread = NPC(201, 106, 368,thread_dialogue,reward_key="thread_room_key")
     
     npcsLevel2.append(npc_doc)
     npcsLevel2.append(npc_veso)
@@ -1797,24 +1816,14 @@ def game_setup():
     autoDialogueTriggersLevel3 = []
 
     keyWarning = AutoDialogueTrigger(
-    1410,73,10,20,
-    [
-        "LOCKED.",
-        "One of those freaks has the key."
-    ]
+    1410,73,10,20,key_warning_dialogue
     )
 
     autoDialogueTriggersLevel2.append(keyWarning)
 
     
     acidWarning = AutoDialogueTrigger(
-    275,81,20,20,
-    [
-        "That acid looks unstable.",
-        "One step into that and I'm finished.",
-        "Maybe there's something",
-        "that could protect me."
-    ]
+    275,81,20,20,acid_warning_dialogue
     )
 
     autoDialogueTriggersLevel1.append(acidWarning)

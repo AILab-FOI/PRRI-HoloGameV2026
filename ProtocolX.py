@@ -2009,12 +2009,7 @@ def give_key(key_id):
     if key_id not in player.keys:
         player.keys.append(key_id)
         sfx(17, "C-5", 10)
-    if time() // 500 % 2 == 0:
-        print("PRESS W TO START", 70, 80, 11)
-
-    print("ARROWS - MOVE", 76, 100, 13)
-    print("W - JUMP", 94, 110, 13)
-    print("B - ATTACK", 88, 120, 13)
+    
     
     
 def draw_game_hud():

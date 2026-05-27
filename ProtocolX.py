@@ -1399,7 +1399,7 @@ class BossEnemy(Enemy):
         self.width = 32
         self.height = 32
 
-        self.sprite = 323
+        self.sprite = 357
 
         self.health = 500
 
@@ -1432,15 +1432,11 @@ class BossEnemy(Enemy):
         sfx(10, "C-4", 15)
 
     def update(self, colliders, damageTriggers):
-        if (self.dead or dialogueManager.active):
+        if self.dead:
             return
 
-        # MOVEMENT
-        self.x += self.dx * self.speed
-
-        if self.check_collision(4 * self.dx, 0, colliders):
-            self.dx = -self.dx
-            self.facing *= -1
+        # FACE PLAYER
+        self.facing = -1 if player.x < self.x else 1
 
         # SHOOT TIMER
         if self.attackTimer > 0:
@@ -1455,13 +1451,12 @@ class BossEnemy(Enemy):
         else:
             self.vsp = 0
 
-        # Y COLLISION
         if self.check_collision(0, self.vsp, colliders):
             self.vsp = 0
 
         self.y += self.vsp
 
-        # DAMAGE
+        # TAKE DAMAGE FROM PLAYER WEAPONS
         self.check_damage_trigger(damageTriggers)
 
         if self.iframe > 0:
@@ -1851,7 +1846,7 @@ def game_setup():
     enemiesLevel4.append(BigEnemy(55 * tile_size, (63 - Level4Y) * tile_size))
     enemiesLevel4.append(BigEnemy(100 * tile_size, (63 - Level4Y) * tile_size))
     enemiesLevel4.append(BigEnemy(150 * tile_size, (63 - Level4Y) * tile_size))
-    enemiesLevel4.append(BossEnemy(220 * tile_size, (63 - Level4Y) * tile_size))
+    enemiesLevel4.append(BossEnemy(228 * tile_size, (61 - Level4Y) * tile_size))
 
     enemiesGlobal = []
 

@@ -142,7 +142,6 @@ class Player:
         tile_y = int((self.y + self.height) / tile_size)
 
         tile = mget(tile_x, tile_y + activeLevelMapIndex * 17)
-        print(str(tile),10,20,12)
 
         if tile in tile_damage_type and self.iframeTimer <= 0:
             dmg_type = tile_damage_type[tile]
@@ -943,23 +942,6 @@ class Enemy:
                 spr(self.sprite, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 0, 0, 2, 2)
             else:
                 spr(self.sprite, int(self.x - cam_x), int(self.y - cam_y), 0, 1, 1, 0, 2, 2)
-            # DEBUG: body hitbox
-            rectb(
-                int(self.x - cam_x),
-                int(self.y - cam_y),
-                self.width,
-                self.height,
-                2
-            )
-
-            # DEBUG: damage hitbox
-            rectb(
-                int(self.contactDamageTrigger.x - cam_x),
-                int(self.contactDamageTrigger.y - cam_y),
-                self.contactDamageTrigger.width,
-                self.contactDamageTrigger.height,
-                3
-            )
 
     def TakeDamage(self, damage, removeInt):
         self.health = self.health - damage
@@ -2048,8 +2030,6 @@ def TIC():
     cls(0)
     update_camera()
     map(activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, -cam_x, -cam_y)
-    print("x: " + str(int(player.x)), 2, 2, 12)
-    print("y: " + str(int(player.y)), 2, 10, 12)
     collidables = TileCollisions([player, enemiesGlobal, invisWallsGlobal], activeLevelMapIndex, 17)
 
     player.update(collidables, playerDamageTriggers)

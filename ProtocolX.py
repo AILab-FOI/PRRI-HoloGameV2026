@@ -108,6 +108,8 @@ class Player:
         
         self.pausePlayer = False
 
+        self.damageFlash=0
+
     def check_collision(self, dx, dy, colliders):
         self.x += dx
         self.y += dy
@@ -137,8 +139,10 @@ class Player:
 
             if dmg_type == "spike":
                 self.health -= 1.5
+                self.damageFlash = 4
             elif dmg_type == "poison":
                 self.health -= 100
+                self.damageFlash = 4
             elif dmg_type == "instant":
                 self.health = 0
 
@@ -150,6 +154,7 @@ class Player:
         for d in damageTriggers:
             if d.check(self.hitbox) and self.iframeTimer <= 0:
                 self.health -= d.damage
+                self.damageFlash = 4
                 self.iframeTimer = self.iframeTime
                 if self.health < 1:
                     self.dead = True
@@ -2026,6 +2031,10 @@ def TIC():
     
     screenTransition.update()
     
+    if player.damageFlash > 0:
+        rectb(0,0,240,136,2)
+        rectb(1,1,238,134,2)
+        player.damageFlash -= 1
     
     # death
     if player.dead:

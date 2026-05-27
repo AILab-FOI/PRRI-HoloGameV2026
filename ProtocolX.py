@@ -36,6 +36,19 @@ class TeleportTrigger(Collidable):
         activeLevel.LoadLevel(self.teleportToX, self.teleportToY)
         activeLevelIndex = self.levelIndex
 
+        if self.levelIndex == 0:
+           play_music(3)   # hospital / početak
+        elif self.levelIndex == 1:
+           play_music(3)   # hospital
+        elif self.levelIndex == 2:
+           play_music(6)   # grad
+        elif self.levelIndex == 3:
+           play_music(5)   # boss / factory
+        elif self.levelIndex == 4:
+           play_music(6)   # side room
+        elif self.levelIndex == 5:
+           play_music(6)   # side room
+
 # --- HELPER ---
 def move_towards(a, b, v):
     if a < b:
@@ -184,23 +197,32 @@ class Player:
     def update(self, colliders, damageTriggers):
         if (self.dead or self.pausePlayer):
             return
-        
-        global invisWallsGlobal
-        colliders += invisWallsGlobal
-        
-        healthRectColor = 0
-        healthRectWidth = int(40 * ((self.health / self.maxHealth)))
-        
+
+        # --- HUD HEALTH ---
+        healthRectColor = 7
+        healthRectWidth = int(50 * (self.health / self.maxHealth))
+
+        if healthRectWidth < 0:
+            healthRectWidth = 0
+
         if self.health > 75:
             healthRectColor = 7
-        if self.health <= 75 and self.health >= 50:
-            healthRectColor = 3
-        if self.health <= 50 and self.health > 25:
-            healthRectColor = 3
-        if player.health <= 25:
+        elif self.health > 50:
+            healthRectColor = 11
+        elif self.health > 25:
+            healthRectColor = 4
+        else:
             healthRectColor = 2
-        
-        rect(10, 10, healthRectWidth, 6, healthRectColor)
+
+        # HUD box
+        rect(4, 4, 72, 16, 0)
+        rectb(4, 4, 72, 16, 4)
+
+        print("HP", 8, 10, 12)
+        rectb(22, 9, 52, 6, 12)
+        rect(23, 10, healthRectWidth, 4, healthRectColor)
+
+
         
         # LEFT / RIGHT
         self.on_ground = self.check_collision(0, 1, colliders)
@@ -1602,6 +1624,21 @@ autoDialogueTriggers= []
 powerupsGlobal = []
 npcsGlobal = []
 keysGlobal = []
+currentMusic = -1
+gameState = "menu"
+
+def play_music(track):
+    global currentMusic
+
+    if currentMusic != track:
+        music(track)
+        currentMusic = track
+
+def stop_music():
+    global currentMusic
+
+    music()
+    currentMusic = -1
 
 projectiles = []
 BossProjectiles = []
@@ -1951,15 +1988,57 @@ def update_camera():
         cam_y = cam_maxY
 
 game_setup()
-music(3)
+play_music(3)
 
-def give_key(key_id):
-    if key_id not in player.keys:
-        player.keys.append(key_id)
-        sfx(17, "C-5", 10)
+def draw_menu():
+    cls(0)
+
+    print("PROTOCOL X", 82, 35, 12)
+    print("A CYBERPUNK PLATFORMER", 58, 50, 4)
+
+    if time() // 500 % 2 == 0:
+        print("PRESS W TO START", 70, 80, 11)
+
+    print("ARROWS - MOVE", 76, 100, 13)
+    print("W - JUMP", 94, 110, 13)
+    print("B - ATTACK", 88, 120, 13)
+    
+    
+def draw_game_hud():
+    # weapon
+    rect(82, 4, 70, 16, 0)
+    rectb(82, 4, 70, 16, 4)
+
+    if player.activeWeapon == "gun":
+        print("GUN", 88, 10, 12)
+    elif player.activeWeapon == "katana":
+        print("KATANA", 88, 10, 12)
+    else:
+        print("NO WPN", 88, 10, 5)
+
+    # key
+    rect(158, 4, 54, 16, 0)
+    rectb(158, 4, 54, 16, 4)
+
+    if player.hasKey:
+        print("KEY", 166, 10, 11)
+    else:
+        print("NO KEY", 164, 10, 5)
 
 # --- MAIN LOOP ---
 def TIC():
+    global gameState
+
+    if gameState == "menu":
+        draw_menu()
+
+        if keyp(23):
+            gameState = "game"
+
+        return
+        
+     
+
     cls(0)
     update_camera()
     map(activeLevelMapX, activeLevelMapY, activeLevelSizeX, activeLevelSizeY, -cam_x, -cam_y)
@@ -2044,16 +2123,18 @@ def TIC():
         line(63,48,173,48,8)
         print("GAME OVER",90,57,8)
         line(63,72,173,72,8)
-        
 
         if time() // 500 % 2 == 0:
             print("Press R to restart", 66, 78, 8)
 
-        music()
+        if currentMusic != -1:
+            stop_music()
 								
         if keyp(18):
             game_setup()
-            music(3)
+            gameState = "menu"
+            play_music(3)
+
         return
 
 # <TILES>
